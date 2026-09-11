@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>원 달러 환율</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>원 달러 환율</h1>
+        
+        <div class="time-range-selector">
+            <button class="range-btn" data-period="1year">1년</button>
+            <button class="range-btn" data-period="5years">5년</button>
+            <button class="range-btn" data-period="10years">10년</button>
+            <button class="range-btn active" data-period="max">최대</button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="exchangeChart"></canvas>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

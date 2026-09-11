@@ -1,0 +1,15 @@
+{
+  "name": "usd-won-exchange-chart",
+  "version": "1.0.0",
+  "description": "원 달러 환율 차트 앱",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["exchange", "rate", "chart", "korean-won"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
