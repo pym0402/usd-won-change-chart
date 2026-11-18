@@ -1,0 +1,363 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// User and Role models
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  roles         UserRole[]
+  merchant      Merchant?
+  wallet        Wallet?
+  paymentMethods PaymentMethod[]
+  payments      Payment[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // CUSTOMER, MERCHANT, ADMIN
+  description String?
+  createdAt   DateTime @default(now())
+
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// Wallet and PointTransaction models
+model Wallet {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  balance     Float    @default(0)
+  currency    String   @default("KRW")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions PointTransaction[]
+
+  @@map("wallets")
+}
+
+model PointTransaction {
+  id              String            @id @default(cuid())
+  walletId        String
+  type            TransactionType   // CHARGE, USE, REFUND, EARN
+  amount          Float
+  balanceAfter    Float
+  description     String?
+  referenceId     String?           // 결제 ID 등 참조 ID
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+
+  wallet          Wallet            @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("point_transactions")
+}
+
+// PaymentMethod model
+model PaymentMethod {
+  id              String              @id @default(cuid())
+  userId          String
+  type            PaymentMethodType   // CARD, BANK_ACCOUNT
+  isDefault       Boolean             @default(false)
+  provider        String?             // Stripe Customer ID 등
+  providerMethodId String?            // Stripe Payment Method ID
+  last4           String?             // 카드 마스킹 정보
+  expiryMonth     Int?
+  expiryYear      Int?
+  bankName        String?
+  bankAccount     String?
+  status          PaymentMethodStatus @default(ACTIVE)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+
+  @@map("payment_methods")
+}
+
+// Payment model
+model Payment {
+  id                  String        @id @default(cuid())
+  merchantId          String
+  customerId          String
+  amount              Float
+  currency            String        @default("KRW")
+  status              PaymentStatus @default(PENDING)
+  paymentMethodId     String?
+  pointAmount         Float         @default(0)     // 포인트 사용 금액
+  cardAmount          Float         @default(0)     // 카드 결제 금액
+  idempotencyKey      String        @unique         // 멱등성 키
+  stripePaymentId     String?       @unique
+  metadata            Json?
+  fraudScore          Float?                         // FDS 점수
+  fraudDetected       Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  merchant            Merchant      @relation(fields: [merchantId], references: [id])
+  customer            User          @relation(fields: [customerId], references: [id])
+  paymentMethod       PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  settlement          MerchantSettlement?
+
+  @@index([merchantId])
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+// Merchant models
+model Merchant {
+  id                String          @id @default(cuid())
+  userId            String          @unique
+  businessName      String
+  businessLicense   String?
+  description       String?
+  status            MerchantStatus  @default(PENDING)
+  approvedAt        DateTime?
+  commissionRate    Float           @default(0.025) // 2.5% 수수료
+  bankAccount       String?
+  bankName          String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys           ApiKey[]
+  payments          Payment[]
+  settlements       MerchantSettlement[]
+  application       MerchantApplication?
+
+  @@map("merchants")
+}
+
+model MerchantApplication {
+  id          String   @id @default(cuid())
+  merchantId  String   @unique
+  documents   Json?    // 서류 정보
+  status      ApplicationStatus @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("merchant_applications")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  merchantId  String
+  key         String    @unique
+  name        String
+  permissions Json?     // 권한 설정
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// Ledger models
+model LedgerEntry {
+  id              String          @id @default(cuid())
+  referenceId     String          // PointTransaction ID 또는 Payment ID
+  referenceType   ReferenceType   // POINT_TRANSACTION, PAYMENT, SETTLEMENT
+  accountType     AccountType     // CASH, POINTS, REVENUE, MERCHANT, COMMISSION
+  debit           Float           @default(0)    // 차변
+  credit          Float           @default(0)    // 대변
+  description     String?
+  createdAt       DateTime        @default(now())
+
+  @@index([referenceId])
+  @@index([referenceType])
+  @@index([accountType])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+model MerchantSettlement {
+  id              String              @id @default(cuid())
+  merchantId      String
+  paymentId       String              @unique
+  grossAmount     Float               // 총 결제 금액
+  commission      Float               // 수수료
+  netAmount       Float               // 정산 금액
+  status          SettlementStatus    @default(PENDING)
+  settledAt       DateTime?
+  transactionId   String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  merchant        Merchant            @relation(fields: [merchantId], references: [id])
+  payment         Payment             @relation(fields: [paymentId], references: [id])
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("merchant_settlements")
+}
+
+// FraudDetection model
+model FraudDetection {
+  id          String    @id @default(cuid())
+  paymentId   String    @unique
+  riskScore   Float     // 0-100, 높을수록 위험
+  riskFactors Json      // 위험 요인
+  action      FraudAction // ALLOW, BLOCK, REVIEW
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("fraud_detections")
+}
+
+// Enums
+enum MerchantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  CHARGE       // 포인트 충전
+  USE          // 포인트 사용
+  REFUND       // 환불
+  EARN         // 포인트 적립
+  TRANSFER_OUT // 송금 출금
+  TRANSFER_IN  // 송금 입금
+}
+
+enum PaymentMethodType {
+  CARD
+  BANK_ACCOUNT
+}
+
+enum PaymentMethodStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum ReferenceType {
+  POINT_TRANSACTION
+  PAYMENT
+  SETTLEMENT
+}
+
+enum AccountType {
+  CASH        // 현금 (Stripe 잔고)
+  POINTS      // 포인트 (고객 지갑)
+  REVENUE     // 수익 (플랫폼)
+  MERCHANT    // 가맹점 (정산 대상)
+  COMMISSION  // 수수료 (플랫폼 수익)
+}
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FraudAction {
+  ALLOW
+  BLOCK
+  REVIEW
+}

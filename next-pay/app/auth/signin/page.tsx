@@ -29,7 +29,7 @@ export default function SignInPage() {
   }
 
   useEffect(() => {
-    if (status === 'authenticated' && session) {
+    if (status === 'authenticated' && session && !showPopup) {
       const redirectUrl = getRedirectUrl()
       router.push(redirectUrl)
     }
@@ -39,7 +39,7 @@ export default function SignInPage() {
       setRegistered(true)
       setTimeout(() => setRegistered(false), 5000)
     }
-  }, [status, session, router])
+  }, [status, session, router, showPopup])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,11 +65,6 @@ export default function SignInPage() {
         console.log('[Frontend] 로그인 성공, 홈페이지로 리다이렉트')
         setLoginSuccess(true)
         setShowPopup(true)
-
-        setTimeout(() => {
-          setShowPopup(false)
-          window.location.href = '/'
-        }, 2000)
       } else {
         const errorMessage = '로그인 중 오류가 발생했습니다.'
         setError(errorMessage)
@@ -194,13 +189,28 @@ export default function SignInPage() {
           </div>
           */}
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <Link
               href="/auth/register"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
               계정이 없으신가요? 회원가입
             </Link>
+            <div className="flex justify-center space-x-4 text-sm">
+              <Link
+                href="/auth/find-email"
+                className="text-gray-600 hover:text-gray-900"
+              >
+                이메일 찾기
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link
+                href="/auth/forgot-password"
+                className="text-gray-600 hover:text-gray-900"
+              >
+                비밀번호 찾기
+              </Link>
+            </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
@@ -224,37 +234,27 @@ export default function SignInPage() {
       </div>
 
       {showPopup && (
-        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl border-2 border-blue-400 p-6 w-80">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">웹 페이지 메시지</h3>
-              <button
-                onClick={() => {
-                  setShowPopup(false)
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <div className="fixed inset-0 flex items-center justify-center z-[9999]" style={{ backgroundColor: '#000000' }}>
+          <div className="bg-white rounded-lg shadow-xl px-10 w-[360px] text-center relative z-[10000]" style={{ backgroundColor: '#e0f2fe', paddingTop: '8.33rem', paddingBottom: '8.33rem' }}>
+            <div className="flex justify-center mb-16">
+              <div className="w-28 h-28 bg-green-100 rounded-full flex items-center justify-center" style={{ backgroundColor: '#dcfce7' }}>
+                <svg className="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#22c55e' }} strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-              </button>
+              </div>
             </div>
-            <div className="flex items-center mb-4">
-              <svg className="w-6 h-6 text-yellow-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <p className="text-gray-700">로그인 되었습니다. 환영합니다. :)</p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  setShowPopup(false)
-                }}
-                className="px-4 py-2 bg-white border-2 border-blue-400 text-blue-600 rounded hover:bg-blue-50 transition-colors font-medium"
-              >
-                확인
-              </button>
-            </div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-4" style={{ color: '#1f2937' }}>로그인 완료</h3>
+            <p className="text-gray-600 mb-16 text-lg" style={{ color: '#4b5563' }}>Next Pay 에 오신 것을 환영합니다!</p>
+            <button
+              onClick={() => {
+                setShowPopup(false)
+                window.location.href = '/'
+              }}
+              className="w-full px-8 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-lg"
+              style={{ backgroundColor: '#4f46e5', color: '#ffffff' }}
+            >
+              확인
+            </button>
           </div>
         </div>
       )}
