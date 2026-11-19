@@ -59,7 +59,7 @@ export default function WalletPage() {
       const response = await fetch('/api/wallet/transactions')
       if (response.ok) {
         const data = await response.json()
-        setTransactions(data)
+        setTransactions(data.transactions || [])
       }
     } catch (err) {
       console.error('거래 내역 조회 오류:', err)
@@ -220,18 +220,32 @@ export default function WalletPage() {
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                           transaction.type === 'CHARGE'
                             ? 'bg-green-100 text-green-700'
+                            : transaction.type === 'REWARD' || transaction.type === 'EARN'
+                            ? 'bg-amber-100 text-amber-700'
+                            : transaction.type === 'REFUND'
+                            ? 'bg-blue-100 text-blue-700'
                             : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {transaction.type === 'CHARGE' ? '충전' : '사용'}
+                        {transaction.type === 'CHARGE'
+                          ? '충전'
+                          : transaction.type === 'REWARD' || transaction.type === 'EARN'
+                          ? '리워드'
+                          : transaction.type === 'REFUND'
+                          ? '환불'
+                          : transaction.type === 'USE' || transaction.type === 'PAYMENT'
+                          ? '결제 사용'
+                          : transaction.type}
                       </span>
                     </td>
                     <td
                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                        transaction.type === 'CHARGE' ? 'text-green-600' : 'text-red-600'
+                        transaction.type === 'CHARGE' || transaction.type === 'REWARD' || transaction.type === 'EARN' || transaction.type === 'REFUND'
+                          ? 'text-green-600'
+                          : 'text-red-600'
                       }`}
                     >
-                      {transaction.type === 'CHARGE' ? '+' : '-'}
+                      {transaction.type === 'CHARGE' || transaction.type === 'REWARD' || transaction.type === 'EARN' || transaction.type === 'REFUND' ? '+' : '-'}
                       {transaction.amount.toLocaleString()} P
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

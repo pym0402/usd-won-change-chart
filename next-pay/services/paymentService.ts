@@ -36,6 +36,15 @@ export const paymentService = {
       throw new Error('포인트 사용 금액이 총 결제 금액을 초과할 수 없습니다.')
     }
 
+    // 포인트 잔액 검증
+    if (pointAmount > 0) {
+      const { walletService } = await import('./walletService')
+      const wallet = await walletService.getWallet(customerId)
+      if (wallet.balance < pointAmount) {
+        throw new Error(`포인트 잔액이 부족합니다. 현재 잔액: ${wallet.balance}P, 요청 금액: ${pointAmount}P`)
+      }
+    }
+
     // Stripe Payment Intent 생성 (카드 결제가 있는 경우에만)
     let stripePaymentIntent = null
     let clientSecret = null
@@ -163,6 +172,18 @@ export const paymentService = {
 
         // 원장 기록 (카드 결제 없는 경우)
         await this.createLedgerEntriesForPayment(tx, paymentId, payment.amount, payment.cardAmount)
+
+        // 포인트 적립 (1%) - 포인트만 사용한 경우에도 적립
+        const earnAmount = payment.amount * 0.01
+        if (earnAmount > 0) {
+          const { walletService } = await import('./walletService')
+          await walletService.earnPoints(
+            payment.customerId,
+            earnAmount,
+            '결제 완료 포인트 적립',
+            paymentId
+          )
+        }
       }
 
       return payment

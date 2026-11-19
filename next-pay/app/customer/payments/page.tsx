@@ -41,10 +41,13 @@ export default function PaymentsPage() {
   const [stripeModalOpen, setStripeModalOpen] = useState(false)
   const [clientSecret, setClientSecret] = useState('')
   const [currentPaymentId, setCurrentPaymentId] = useState('')
+  const [recentPaymentResult, setRecentPaymentResult] = useState<Payment | null>(null)
+  const [currentWalletBalance, setCurrentWalletBalance] = useState<number | null>(null)
 
   useEffect(() => {
     fetchPaymentMethods()
     fetchPayments()
+    fetchWalletBalance()
   }, [])
 
   const fetchPaymentMethods = async () => {
@@ -68,6 +71,18 @@ export default function PaymentsPage() {
       }
     } catch (err) {
       console.error('결제 내역 조회 오류:', err)
+    }
+  }
+
+  const fetchWalletBalance = async () => {
+    try {
+      const response = await fetch('/api/wallet')
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentWalletBalance(data.balance)
+      }
+    } catch (err) {
+      console.error('지갑 잔액 조회 오류:', err)
     }
   }
 
@@ -106,13 +121,17 @@ export default function PaymentsPage() {
           setCurrentPaymentId(data.payment.id)
           setStripeModalOpen(true)
         } else {
-          // 포인트만 사용한 경우
-          setToast({ message: 'Payment Intent가 생성되었습니다.', type: 'success' })
-          setMerchantId('')
-          setAmount('')
-          setPointAmount('0')
-          setSelectedPaymentMethod('')
-          fetchPayments()
+          // 등록된 결제 수단이 있거나 포인트만 사용한 경우 - 자동으로 결제 승인 진행
+          if (selectedPaymentMethod) {
+            await handleConfirmPayment(data.payment.id)
+          } else {
+            setToast({ message: 'Payment Intent가 생성되었습니다.', type: 'success' })
+            setMerchantId('')
+            setAmount('')
+            setPointAmount('0')
+            setSelectedPaymentMethod('')
+            fetchPayments()
+          }
         }
       } else {
         const data = await response.json()
@@ -150,12 +169,22 @@ export default function PaymentsPage() {
         const earnedPoints = data.pointAmount ? Math.floor(data.pointAmount * 0.01) : 0
         const totalAmount = data.amount || 0
 
+        // 최근 결제 결과 저장
+        setRecentPaymentResult(data)
+
+        // 지갑 잔액 갱신
+        fetchWalletBalance()
+
         // 포인트 적립 메시지와 Confetti 효과
         setToast({
           message: `결제가 승인되었습니다! 🎉 ${totalAmount.toLocaleString()}원 결제로 ${earnedPoints.toLocaleString()}P가 적립되었습니다.`,
           type: 'success'
         })
         setShowConfetti(true)
+        setMerchantId('')
+        setAmount('')
+        setPointAmount('0')
+        setSelectedPaymentMethod('')
         fetchPayments()
       } else {
         const data = await response.json()
@@ -332,7 +361,7 @@ export default function PaymentsPage() {
               onChange={(e) => setSelectedPaymentMethod(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             >
-              <option value="">선택 안함 (Payment Intent 생성만)</option>
+              <option value="">새 카드로 직접 결제 (Stripe 결제창 호출)</option>
               {paymentMethods.map((method) => (
                 <option key={method.id} value={method.id}>
                   {method.type === 'CARD'
@@ -352,6 +381,44 @@ export default function PaymentsPage() {
           </Button>
         </form>
       </div>
+
+      {recentPaymentResult && (
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl shadow-sm border border-indigo-100 p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <CheckCircle className="w-5 h-5 text-indigo-600" />
+            <h3 className="text-lg font-semibold text-gray-900">최근 결제 / Payment Intent 생성 결과</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-xs text-gray-500 mb-1">결제 ID</p>
+              <p className="text-sm font-mono font-semibold text-gray-900">{recentPaymentResult.id.slice(0, 12)}...</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-xs text-gray-500 mb-1">총 결제 금액</p>
+              <p className="text-sm font-semibold text-gray-900">{recentPaymentResult.amount.toLocaleString()}원</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-xs text-gray-500 mb-1">사용 포인트</p>
+              <p className="text-sm font-semibold text-gray-900">{recentPaymentResult.pointAmount.toLocaleString()}P</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-xs text-gray-500 mb-1">남은 지갑 잔액</p>
+              <p className="text-sm font-semibold text-indigo-600">{currentWalletBalance?.toLocaleString() || '0'}P</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-xs text-gray-500 mb-1">적립 리워드 (1%)</p>
+              <p className="text-sm font-semibold text-amber-600">{Math.floor(recentPaymentResult.amount * 0.01).toLocaleString()}P</p>
+            </div>
+          </div>
+          <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs text-gray-500 mb-1">현재 결제 상태</p>
+            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(recentPaymentResult.status)}`}>
+              {getStatusIcon(recentPaymentResult.status)}
+              <span>{getStatusText(recentPaymentResult.status)}</span>
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 className="text-xl font-semibold text-gray-900 mb-6">결제 내역</h3>
