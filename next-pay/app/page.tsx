@@ -1,69 +1,111 @@
 import Link from 'next/link'
-import { Wallet, Store, Shield, LogIn, UserPlus } from 'lucide-react'
+import { Check, ChevronRight, ShieldCheck, Store, Wallet, Zap } from 'lucide-react'
 import { auth } from '@/lib/auth'
+import styles from './home.module.css'
+
+const portals = [
+  {
+    href: '/customer',
+    title: '고객 페이지',
+    description: '포인트를 충전하고, 간편결제와 송금 내역을 확인하세요.',
+    action: '고객 포털 열기',
+    icon: Wallet,
+    accent: styles.blue,
+  },
+  {
+    href: '/merchant',
+    title: '가맹점 페이지',
+    description: '결제·정산 내역을 확인하고 QR 결제와 SDK를 연동하세요.',
+    action: '가맹점 포털 열기',
+    icon: Store,
+    accent: styles.mint,
+  },
+  {
+    href: '/admin',
+    title: '관리자 페이지',
+    description: '거래액과 수수료 수익을 보고 가맹점과 이상 거래를 관리하세요.',
+    action: '관리자 포털 열기',
+    icon: ShieldCheck,
+    accent: styles.violet,
+  },
+]
+
+function PaymentPreview() {
+  return (
+    <figure className={styles.preview}>
+      <div className={styles.orbit} aria-hidden="true" />
+      <div className={styles.payCard} aria-hidden="true">
+        <div className={styles.cardBrand}>
+          <Zap size={20} fill="currentColor" />
+          Next Pay
+        </div>
+        <span className={styles.cardChip} />
+        <span className={styles.cardRings} />
+      </div>
+      <div className={styles.receipt}>
+        <div className={styles.receiptTop}>
+          <span className={styles.check}><Check size={19} aria-hidden="true" /></span>
+          <span>결제 완료</span>
+        </div>
+        <p className={styles.amount}>24,000원</p>
+        <p className={styles.merchant}>넥스트 커피</p>
+        <div className={styles.reward}>
+          <span>포인트 적립</span>
+          <strong>+240 P</strong>
+        </div>
+      </div>
+      <figcaption className={styles.caption}>결제 화면 예시</figcaption>
+    </figure>
+  )
+}
 
 export default async function Home() {
   const session = await auth()
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 pt-16">
-      <div className="text-center max-w-5xl mx-auto px-4">
-        <h1 className="text-5xl font-bold mb-4 text-indigo-900">Next Pay</h1>
-        <p className="text-gray-600 mb-12 text-lg">차세대 통합 간편결제 및 가맹점 정산 원장 플랫폼</p>
-
-        {!session && (
-          <div className="flex justify-center gap-4 mb-12">
-            <Link
-              href="/auth/signin"
-              className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
-            >
-              <LogIn className="w-5 h-5" />
-              <span>로그인</span>
-            </Link>
-            <Link
-              href="/auth/register"
-              className="px-8 py-3 bg-white text-indigo-600 border-2 border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors font-medium flex items-center gap-2 shadow-lg"
-            >
-              <UserPlus className="w-5 h-5" />
-              <span>회원가입</span>
-            </Link>
+    <main className={styles.home}>
+      <div className={styles.container}>
+        <section className={styles.hero} aria-labelledby="home-title">
+          <div className={styles.intro}>
+            <h1 id="home-title" className={styles.title}>
+              <span className={styles.brand}>Next Pay</span>
+              일상의 결제부터<br />
+              <span className={styles.highlight}>비즈니스 정산까지</span>
+            </h1>
+            <p className={styles.summary}>
+              포인트와 카드로 간편결제를 이용하고,<br className={styles.lineBreak} />
+              {' '}결제 내역과 가맹점 정산을 한곳에서 관리하세요.
+            </p>
+            {!session && (
+              <div className={styles.actions}>
+                <Link href="/auth/signin" className={styles.primary}>로그인</Link>
+                <Link href="/auth/register" className={styles.secondary}>회원가입</Link>
+              </div>
+            )}
           </div>
-        )}
+          <PaymentPreview />
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
-          <Link
-            href="/customer"
-            className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-          >
-            <div className="bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Wallet className="w-8 h-8 text-indigo-600" />
-            </div>
-            <h3 className="text-xl font-bold mb-3 text-gray-800">고객 페이지</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">포인트 충전, 간편결제, 송금 및 리워드 내역 관리</p>
-          </Link>
-
-          <Link
-            href="/merchant"
-            className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-          >
-            <div className="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Store className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h3 className="text-xl font-bold mb-3 text-gray-800">가맹점 페이지</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">가변 수수료 정산 내역 확인, QR 결제 및 SDK 연동 가이드</p>
-          </Link>
-
-          <Link
-            href="/admin"
-            className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-          >
-            <div className="bg-gradient-to-br from-violet-100 to-purple-100 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Shield className="w-8 h-8 text-violet-600" />
-            </div>
-            <h3 className="text-xl font-bold mb-3 text-gray-800">관리자 페이지</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">플랫폼 전체 거래액(GMV) 및 수수료 수익 통계, 가맹점 및 FDS 모니터링</p>
-          </Link>
-        </div>
+        <section className={styles.portals} aria-labelledby="portal-title">
+          <h2 id="portal-title" className={styles.sectionTitle}>서비스 바로가기</h2>
+          <ul className={styles.portalGrid}>
+            {portals.map(({ href, title, description, action, icon: Icon, accent }) => (
+              <li key={href} className={accent}>
+                <Link href={href} className={styles.portalCard}>
+                  <span className={styles.portalIcon}>
+                    <Icon size={24} strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  <h3 className={styles.portalTitle}>{title}</h3>
+                  <p className={styles.portalDescription}>{description}</p>
+                  <span className={styles.portalAction}>
+                    {action}
+                    <ChevronRight size={17} aria-hidden="true" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </main>
   )
