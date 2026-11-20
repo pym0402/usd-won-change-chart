@@ -1,42 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { fraudDetectionService } from '@/services/fraudDetectionService'
 import { FraudAction } from '@prisma/client'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
+    const { id } = await params
+    const { action }: { action?: unknown } = await request.json()
 
-    // 관리자 권한 확인
-    const userRoles = (session.user as any).roles
-    if (!userRoles || !userRoles.includes('ADMIN')) {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
-    }
-
-    const { action } = await request.json()
-
-    if (!action || !['ALLOW', 'BLOCK', 'REVIEW'].includes(action)) {
+    if (action !== FraudAction.ALLOW && action !== FraudAction.BLOCK && action !== FraudAction.REVIEW) {
       return NextResponse.json({ error: '유효하지 않은 조치 타입입니다.' }, { status: 400 })
     }
 
     const fraudDetection = await fraudDetectionService.takeAction(
-      params.id,
-      action as FraudAction,
-      session.user.id
+      id,
+      action,
+      user.id
     )
 
     return NextResponse.json(fraudDetection)
-  } catch (error: any) {
+  } catch (error) {
     console.error('FDS 조치 오류:', error)
     return NextResponse.json(
-      { error: error.message || 'FDS 조치 중 오류가 발생했습니다.' },
+      { error: error instanceof Error ? error.message : 'FDS 조치 중 오류가 발생했습니다.' },
       { status: 500 }
     )
   }

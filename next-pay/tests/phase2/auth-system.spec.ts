@@ -31,5 +31,19 @@ test.describe('Phase 2: 인증 시스템', () => {
     })
 
     expect(registerResponse.status()).toBe(201)
+
+    const csrfResponse = await request.get('/api/auth/csrf')
+    expect(csrfResponse.ok()).toBeTruthy()
+    const { csrfToken } = await csrfResponse.json()
+    await request.post('/api/auth/callback/credentials', {
+      form: { csrfToken, email: newUser.email, password: newUser.password },
+      maxRedirects: 0,
+    })
+
+    const sessionResponse = await request.get('/api/auth/session')
+    expect(sessionResponse.ok()).toBeTruthy()
+    const session = await sessionResponse.json()
+    expect(session.user.email).toBe(newUser.email)
+    expect(session.user.roles).toEqual(['CUSTOMER'])
   })
 })

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { settlementService } from '@/services/settlementService'
 
 export async function GET(
@@ -7,17 +7,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    const user = await authorize('MERCHANT', 'ADMIN')
+    if (user instanceof NextResponse) return user
 
     const { id: settlementId } = await params
     const settlement = await settlementService.getSettlement(settlementId)
+
+    if (!user.roles.includes('ADMIN') && settlement.merchant.userId !== user.id) {
+      return NextResponse.json({ error: '정산 정보를 찾을 수 없습니다.' }, { status: 404 })
+    }
 
     return NextResponse.json(settlement)
   } catch (error) {

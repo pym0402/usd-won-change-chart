@@ -1,11 +1,13 @@
 'use client'
 
+import { PortalHeading, PortalMetric, PortalTable } from '@/app/_portal/portal'
+import styles from '@/app/_portal/portal.module.css'
+
 import { useEffect, useState } from 'react'
 import { MerchantStatus } from '@prisma/client'
 import { Store, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 
 interface Merchant {
   id: string
@@ -77,15 +79,15 @@ export default function MerchantsPage() {
   const getStatusColor = (status: MerchantStatus) => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-green-100 text-green-700'
+        return styles.mint
       case 'SUSPENDED':
-        return 'bg-red-100 text-red-700'
+        return styles.red
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-700'
+        return styles.amber
       case 'REJECTED':
-        return 'bg-gray-100 text-gray-700'
+        return ''
       default:
-        return 'bg-gray-100 text-gray-700'
+        return ''
     }
   }
 
@@ -128,114 +130,112 @@ export default function MerchantsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-gray-900">가맹점 관리</h2>
-        <div className="flex space-x-2">
-          <Button
-            variant={filter === '' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setFilter('')}
-          >
-            전체
-          </Button>
-          <Button
-            variant={filter === 'APPROVED' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setFilter('APPROVED')}
-          >
-            활성
-          </Button>
-          <Button
-            variant={filter === 'SUSPENDED' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setFilter('SUSPENDED')}
-          >
-            정지
-          </Button>
-          <Button
-            variant={filter === 'PENDING' ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setFilter('PENDING')}
-          >
-            대기
-          </Button>
-        </div>
+    <div className={styles.stack}>
+      <PortalHeading title="가맹점 관리" description="가맹점의 운영 상태, 매출과 정산 정보를 확인하세요." />
+      <div className={styles.filters} role="group" aria-label="가맹점 상태 필터">
+        <Button className={styles.button}
+          aria-pressed={filter === ''}
+          size="sm"
+          onClick={() => setFilter('')}
+        >
+          전체
+        </Button>
+        <Button className={styles.button}
+          aria-pressed={filter === 'APPROVED'}
+          size="sm"
+          onClick={() => setFilter('APPROVED')}
+        >
+          활성
+        </Button>
+        <Button className={styles.button}
+          aria-pressed={filter === 'SUSPENDED'}
+          size="sm"
+          onClick={() => setFilter('SUSPENDED')}
+        >
+          정지
+        </Button>
+        <Button className={styles.button}
+          aria-pressed={filter === 'PENDING'}
+          size="sm"
+          onClick={() => setFilter('PENDING')}
+        >
+          대기
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card
+      <div className={styles.metrics}>
+        <PortalMetric
           title="총 가맹점"
           value={`${merchants.length}개`}
           icon={Store}
         />
-        <Card
+        <PortalMetric
           title="활성 가맹점"
           value={`${merchants.filter(m => m.status === 'APPROVED').length}개`}
           icon={CheckCircle}
         />
-        <Card
+        <PortalMetric
           title="정지 가맹점"
           value={`${merchants.filter(m => m.status === 'SUSPENDED').length}개`}
           icon={XCircle}
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className={styles.surface}>
         <h3 className="text-xl font-bold text-gray-900 mb-6">가맹점 목록</h3>
 
         {merchants.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">가맹점이 없습니다.</p>
+            <p className={styles.empty}>가맹점이 없습니다.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+          <PortalTable label="가맹점 목록">
+            <table>
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     가맹점명
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     담당자
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     상태
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     총 매출
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     대기 정산
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     수수료율
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     입금 계좌
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     가입일
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     작업
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {merchants.map((merchant) => (
                   <tr key={merchant.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {merchant.businessName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className={styles.wrapCell}>
                       <div>
                         <div className="font-medium">{merchant.user.name || '-'}</div>
                         <div className="text-xs text-gray-500">{merchant.user.email}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(merchant.status)}`}>
+                      <span className={`${styles.badge} ${getStatusColor(merchant.status)}`}>
                         {getStatusIcon(merchant.status)}
                         <span className="ml-1">{getStatusText(merchant.status)}</span>
                       </span>
@@ -264,7 +264,7 @@ export default function MerchantsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       {merchant.status === 'APPROVED' && (
-                        <Button
+                        <Button className={styles.dangerButton}
                           variant="danger"
                           size="sm"
                           onClick={() => updateMerchantStatus(merchant.id, 'SUSPENDED')}
@@ -273,7 +273,7 @@ export default function MerchantsPage() {
                         </Button>
                       )}
                       {merchant.status === 'SUSPENDED' && (
-                        <Button
+                        <Button className={styles.primaryButton}
                           variant="primary"
                           size="sm"
                           onClick={() => updateMerchantStatus(merchant.id, 'APPROVED')}
@@ -286,7 +286,7 @@ export default function MerchantsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </PortalTable>
         )}
       </div>
     </div>

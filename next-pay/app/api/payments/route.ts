@@ -1,44 +1,42 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
+import { prisma } from '@/lib/prisma'
 import { paymentService } from '@/services/paymentService'
 import { PaymentStatus } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const userId = (session.user as any).id
-    const userRole = (session.user as any).role
+    const user = await authorize('CUSTOMER', 'MERCHANT')
+    if (user instanceof NextResponse) return user
 
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status') as PaymentStatus | null
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
-
-    // 역할 확인 (CUSTOMER 또는 MERCHANT)
-    if (userRole !== 'CUSTOMER' && userRole !== 'MERCHANT') {
-      return NextResponse.json(
-        { error: '결제 내역 조회 권한이 없습니다.' },
-        { status: 403 }
-      )
+    const scope = searchParams.get('scope') ?? (user.roles.includes('CUSTOMER') ? 'customer' : 'merchant')
+    if (scope !== 'customer' && scope !== 'merchant') {
+      return NextResponse.json({ error: '유효하지 않은 결제 내역 범위입니다.' }, { status: 400 })
+    }
+    if (!user.roles.includes(scope === 'customer' ? 'CUSTOMER' : 'MERCHANT')) {
+      return NextResponse.json({ error: '결제 내역 조회 권한이 없습니다.' }, { status: 403 })
     }
 
-    const result = await paymentService.getPayments(
-      userId,
-      userRole.toLowerCase() as 'customer' | 'merchant',
-      status || undefined,
-      limit,
-      offset
-    )
+    const status = Object.values(PaymentStatus).find((value) => value === searchParams.get('status'))
+    if (searchParams.has('status') && !status) {
+      return NextResponse.json({ error: '유효하지 않은 결제 상태입니다.' }, { status: 400 })
+    }
 
-    return NextResponse.json(result)
+    const limit = Number(searchParams.get('limit') ?? 50)
+    const offset = Number(searchParams.get('offset') ?? 0)
+    if (!Number.isSafeInteger(limit) || limit <= 0 || !Number.isSafeInteger(offset) || offset < 0) {
+      return NextResponse.json({ error: '유효하지 않은 페이지 범위입니다.' }, { status: 400 })
+    }
+
+    const merchant = scope === 'merchant'
+      ? await prisma.merchant.findUnique({ where: { userId: user.id }, select: { id: true } })
+      : null
+    if (scope === 'merchant' && !merchant) {
+      return NextResponse.json({ error: '가맹점 정보를 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    return NextResponse.json(await paymentService.getPayments(merchant?.id ?? user.id, scope, status, limit, offset))
   } catch (error) {
     console.error('결제 내역 조회 오류:', error)
     return NextResponse.json(

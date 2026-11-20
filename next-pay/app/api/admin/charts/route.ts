@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { authorize } from '@/lib/authorize'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
+
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '30')
 

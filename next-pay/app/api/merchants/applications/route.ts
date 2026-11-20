@@ -1,28 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { merchantService } from '@/services/merchantService'
 import { ApplicationStatus } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const userRole = (session.user as any).role
-
-    // 관리자만 접근 가능
-    if (userRole !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
-      )
-    }
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') as ApplicationStatus | null

@@ -1,26 +1,29 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { paymentService } from '@/services/paymentService'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    const user = await authorize('CUSTOMER')
+    if (user instanceof NextResponse) return user
 
     const body = await request.json()
     const { paymentId, paymentMethodId } = body
 
-    if (!paymentId) {
+    if (typeof paymentId !== 'string' || !paymentId) {
       return NextResponse.json(
         { error: 'paymentId는 필수입니다.' },
         { status: 400 }
       )
+    }
+
+    const ownedPayment = await prisma.payment.findFirst({
+      where: { id: paymentId, customerId: user.id },
+      select: { id: true }
+    })
+    if (!ownedPayment) {
+      return NextResponse.json({ error: '결제 정보를 찾을 수 없습니다.' }, { status: 404 })
     }
 
     const payment = await paymentService.confirmPayment(paymentId, paymentMethodId)

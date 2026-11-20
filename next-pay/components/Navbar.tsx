@@ -6,10 +6,7 @@ import { Wallet, CreditCard, LogOut, User, Store, LayoutDashboard, Shield, Zap }
 
 export default function Navbar() {
   const { data: session, status } = useSession()
-  const userRoles = (session?.user as any)?.roles || []
-
-  // 디버깅용
-  console.log('[Navbar] 세션 상태:', { status, session, userRoles })
+  const userRoles = session?.user?.roles ?? []
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/' })

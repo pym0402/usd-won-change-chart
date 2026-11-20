@@ -1,0 +1,615 @@
+@reference "tailwindcss";
+
+.header {
+  border-bottom: 1px solid #e1e7f0;
+  background: #fff;
+}
+
+.headerInner,
+.container {
+  width: min(100% - 3rem, 72rem);
+  margin-inline: auto;
+}
+
+.headerInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem clamp(1rem, 3vw, 2.5rem);
+  min-height: 3.75rem;
+  padding-block: 0.375rem;
+  box-sizing: border-box;
+}
+
+.portalName {
+  margin: 0;
+  font-weight: 800;
+}
+
+.navigation {
+  @apply flex flex-wrap items-center gap-1;
+  min-width: 0;
+}
+
+.navigation a {
+  @apply inline-flex min-h-11 items-center rounded-xl px-3 no-underline;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.navigation a:hover,
+.navigation a[aria-current="page"] {
+  color: var(--blue);
+  background: #edf3ff;
+}
+
+.container {
+  padding-block: clamp(2rem, 4vw, 3.5rem) 4rem;
+}
+
+.stack {
+  display: grid;
+  gap: clamp(1.25rem, 2.5vw, 1.75rem);
+  line-height: 1.5;
+}
+
+.pageHeader h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.125rem);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.065em;
+}
+
+.pageHeader p {
+  margin: 0.625rem 0 0;
+  color: var(--muted);
+  word-break: keep-all;
+}
+
+.shortcutGrid,
+.history {
+  @apply list-none;
+  margin: 0;
+  padding: 0;
+}
+
+.shortcutGrid,
+.walletGrid,
+.paymentGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.shortcutGrid,
+.walletGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.paymentGrid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.shortcutGrid .shortcut {
+  display: grid;
+  min-height: 8.75rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.shortcutCopy h2,
+.cardHeading h2 {
+  margin: 0;
+  font-size: clamp(1.125rem, 2vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.shortcutCopy p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  word-break: keep-all;
+}
+
+.shortcutArrow {
+  color: var(--portal-accent);
+}
+
+.amber {
+  --portal-accent: #87550e;
+  --portal-tint: #fff3d7;
+  --tone: var(--portal-accent);
+  --tint: var(--portal-tint);
+}
+
+.card,
+.balanceCard {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: clamp(1.25rem, 2.4vw, 1.625rem);
+  border: 1px solid #e1e7f0;
+  border-radius: 1.375rem;
+  background: #fff;
+}
+
+.balanceCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 13.5rem;
+  padding: clamp(1.375rem, 4vw, 2.75rem);
+  border-color: transparent;
+  background:
+    radial-gradient(circle at 97% 5%, #ffffff21 0 14%, transparent 14.3% 20%, #ffffff16 20.3% 29%, transparent 29.3%),
+    linear-gradient(135deg, #2b65e9, #123da8);
+  color: #fff;
+}
+
+.balanceIcon,
+.icon,
+.rowIcon {
+  @apply inline-grid shrink-0 place-items-center;
+}
+
+.balanceIcon {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid #ffffff38;
+  border-radius: 1rem;
+  background: #ffffff22;
+}
+
+.balanceCard h2 {
+  margin: 1.25rem 0 0.25rem;
+  color: #edf3ff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.balanceAmount,
+.loadingBalance {
+  margin: 0;
+}
+
+.balanceAmount {
+  font-size: clamp(2rem, 5.5vw, 3.875rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.balanceAmount span {
+  font-size: 0.55em;
+}
+
+.loadingBalance {
+  color: #edf3ff;
+}
+
+.cardHeading {
+  @apply flex items-center gap-3;
+  margin-bottom: 1.25rem;
+}
+
+.icon {
+  @apply size-11 rounded-2xl;
+  color: #2358cb;
+  background: #eaf1ff;
+}
+
+.form,
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 0.875rem;
+}
+
+.field {
+  gap: 0.375rem;
+}
+
+.field label {
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.field label span {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.field input,
+.field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3rem;
+  padding-inline: 0.875rem;
+  border: 1px solid #dce3ef;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.field input::placeholder {
+  color: #65758c;
+}
+
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.select {
+  position: relative;
+}
+
+.select select {
+  appearance: none;
+  padding-inline-end: 2.375rem;
+  text-overflow: ellipsis;
+}
+
+.select svg {
+  position: absolute;
+  inset: 50% 0.875rem auto auto;
+  translate: 0 -50%;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.form .primary,
+.rowActions .action {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.form .primary {
+  min-height: 3rem;
+  margin-top: 0.25rem;
+  padding-inline: 1.25rem;
+  background: var(--blue);
+  color: #fff;
+}
+
+.form .primary:hover:not(:disabled) {
+  background: #1648be;
+}
+
+.form .primary:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.primary [role="status"] span {
+  position: absolute;
+  clip-path: inset(50%);
+}
+
+.navigation a:focus-visible,
+.field :is(input, select):focus-visible,
+.form .primary:focus-visible,
+.rowActions .action:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.rewardNote {
+  @apply flex items-center gap-2 rounded-xl;
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  background: #e2f6ee;
+  color: #08765e;
+  font-size: 0.875rem;
+}
+
+.result {
+  background: linear-gradient(160deg, #edf3ff, #fff 57%);
+}
+
+.resultAmount {
+  @apply flex flex-wrap items-start justify-between gap-3;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e1e7f0;
+}
+
+.resultAmount p {
+  margin: 0 0 0.125rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.resultAmount strong {
+  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.05em;
+}
+
+.receiptDetails {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.receiptDetails div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.receiptDetails dt,
+.receiptDetails dd {
+  overflow-wrap: anywhere;
+}
+
+.receiptDetails dt {
+  color: var(--muted);
+}
+
+.receiptDetails dd {
+  margin: 0;
+  text-align: end;
+  font-weight: 800;
+}
+
+.rewardValue {
+  color: #08765e;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding-block: 0.875rem;
+  border-top: 1px solid #e9edf5;
+}
+
+.historyRow:last-child {
+  padding-bottom: 0.125rem;
+}
+
+.rowIdentity,
+.rowTitle,
+.rowActions {
+  @apply flex items-center;
+  min-width: 0;
+}
+
+.rowIdentity {
+  gap: 0.75rem;
+}
+
+.rowTitle,
+.rowActions {
+  flex-wrap: wrap;
+  gap: 0.375rem 0.5rem;
+}
+
+.rowCopy,
+.rowValues {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.rowCopy {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.rowTitle p {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.rowValues {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowValues strong {
+  color: var(--tone, var(--ink));
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.rowValues span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rowActions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.rowActions .action {
+  min-height: 2.75rem;
+  padding-inline: 0.875rem;
+  background: #edf3ff;
+  color: var(--blue);
+  font-size: 0.875rem;
+}
+
+.rowActions .danger {
+  background: #fbeaec;
+  color: #a62d43;
+}
+
+.rowActions .action:hover {
+  border-color: currentColor;
+}
+
+.rowIcon,
+.badge {
+  background: var(--tint, #edf1f7);
+  color: var(--tone, var(--muted));
+}
+
+.rowIcon {
+  @apply size-10 rounded-xl;
+}
+
+.badge {
+  @apply inline-flex w-fit items-center gap-1 rounded-full;
+  max-width: 100%;
+  padding: 0.2rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.blue { --tone: #2358cb; --tint: #eaf1ff; }
+.mint { --tone: #08765e; --tint: #e2f6ee; }
+.violet { --tone: #6947ba; --tint: #f0eaff; }
+.red { --tone: #a62d43; --tint: #fbeaec; }
+.neutral { --tone: #4e5f77; --tint: #edf1f7; }
+
+.empty {
+  margin: 0;
+  padding-block: clamp(1.5rem, 4vw, 2.5rem);
+  border-radius: 0.75rem;
+  background: #f5f7fb;
+  color: var(--muted);
+  text-align: center;
+}
+
+.notice {
+  position: absolute;
+}
+
+.checkout {
+  display: contents;
+}
+
+.notice > div {
+  position: fixed;
+  inset: 1rem 1rem auto auto;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(27rem, calc(100% - 2rem));
+  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 1px solid #dce3ef;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 10px 26px #1424401f;
+}
+
+.notice p {
+  margin: 0;
+}
+
+.notice button,
+.checkout button {
+  cursor: pointer;
+}
+
+.notice button {
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 0.625rem;
+  background: #f5f7fb;
+  color: var(--muted);
+}
+
+.checkout > div {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 1rem;
+}
+
+.checkout > div > div:first-child {
+  position: absolute;
+  inset: 0;
+  background: #15243d99;
+}
+
+.checkout > div > div:last-child {
+  position: relative;
+  width: min(100%, 32rem);
+  max-height: 100%;
+  overflow: auto;
+  margin: 0;
+  box-sizing: border-box;
+  border-radius: 1.375rem;
+  background: #fff;
+}
+
+@media (min-width: 48.01rem) {
+  .paymentRow {
+    grid-template-columns: minmax(0, 1fr) minmax(8rem, auto) 8rem;
+  }
+
+  .rowActions {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 48rem) {
+  :global(body):has(> .portal) > :global(nav) a:is([href="/customer/wallet"], [href="/customer/payment-methods"]) {
+    display: none;
+  }
+
+  .shortcutGrid,
+  .walletGrid,
+  .paymentGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 32rem) {
+  .navigation a {
+    padding-inline: 0.375rem;
+  }
+
+  .fieldsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rowIdentity {
+    gap: 0.5rem;
+  }
+
+  .rowIcon {
+    display: none;
+  }
+
+  .historyRow {
+    gap: 0.625rem;
+    align-items: start;
+  }
+
+  .rowValues {
+    max-width: 8.5rem;
+  }
+}
+
+@media (max-width: 24rem) {
+  .headerInner,
+  .container {
+    width: calc(100% - 2rem);
+  }
+}

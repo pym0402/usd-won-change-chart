@@ -27,7 +27,6 @@ test.describe('Phase 2: 인증 시스템 기본', () => {
       }
     })
 
-    // 데이터베이스 연결 여부와 상관없이 요청은 성공해야 함
-    expect([400, 500]).toContain(response.status())
+    expect(response.status()).toBe(400)
   })
 })

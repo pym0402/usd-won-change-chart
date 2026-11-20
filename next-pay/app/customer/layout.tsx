@@ -2,6 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import homeStyles from '../home.module.css'
+import styles from './customer.module.css'
+
+const navigation = [
+  { href: '/customer', label: '대시보드' },
+  { href: '/customer/wallet', label: '내 지갑' },
+  { href: '/customer/payments', label: '간편결제' },
+  { href: '/customer/payment-methods', label: '결제 수단' },
+  { href: '/customer/transfer', label: '송금/선물' },
+]
 
 export default function CustomerLayout({
   children,
@@ -11,25 +21,20 @@ export default function CustomerLayout({
   const pathname = usePathname()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Next Pay - 고객 포털</h1>
-            {pathname !== '/customer' && (
-              <nav className="flex gap-4">
-                <Link
-                  href="/customer"
-                  className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
-                >
-                  고객용 대시보드
-                </Link>
-              </nav>
-            )}
-          </div>
+    <div className={`${homeStyles.home} ${styles.portal}`}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <p className={styles.portalName}>고객 포털</p>
+          <nav aria-label="고객 포털 메뉴" className={styles.navigation}>
+            {navigation.map(({ href, label }) => (
+              <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}>
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className={styles.container}>
         {children}
       </main>
     </div>

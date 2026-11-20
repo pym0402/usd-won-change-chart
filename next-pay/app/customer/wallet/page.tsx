@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Wallet, TrendingUp, Plus } from 'lucide-react'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ArrowDownLeft, ArrowUpRight, Gift, List, Plus, RotateCcw, Wallet } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
-import { CardSkeleton } from '@/components/ui/skeleton'
 import { Confetti } from '@/components/ui/confetti'
+import styles from '../customer.module.css'
 
 interface Wallet {
   id: string
@@ -26,6 +25,21 @@ interface Transaction {
   description: string
   createdAt: string
 }
+
+const charge = { label: '충전', tone: styles.blue, icon: Plus, sign: '+' }
+const use = { label: '결제 사용', tone: styles.red, icon: ArrowUpRight, sign: '−' }
+const reward = { label: '리워드 적립', tone: styles.mint, icon: Gift, sign: '+' }
+
+const transactionStyles = new Map([
+  ['CHARGE', charge],
+  ['USE', use],
+  ['PAYMENT', use],
+  ['EARN', reward],
+  ['REWARD', reward],
+  ['REFUND', { label: '환불', tone: styles.violet, icon: RotateCcw, sign: '+' }],
+  ['TRANSFER_IN', { label: '송금 받음', tone: styles.blue, icon: ArrowDownLeft, sign: '+' }],
+  ['TRANSFER_OUT', { label: '송금 보냄', tone: styles.neutral, icon: ArrowUpRight, sign: '−' }],
+])
 
 export default function WalletPage() {
   const router = useRouter()
@@ -109,162 +123,110 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
-
-      <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <Wallet className="w-5 h-5" />
-              <span className="text-sm font-medium text-blue-100">내 지갑</span>
-            </div>
-            <p className="text-gray-200 mb-1">현재 포인트 잔액</p>
-            {wallet ? (
-              <p className="text-5xl font-bold">
-                {wallet.balance.toLocaleString()} P
-              </p>
-            ) : (
-              <CardSkeleton />
-            )}
-          </div>
-          <div className="p-4 bg-white/10 rounded-xl">
-            <TrendingUp className="w-8 h-8" />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Plus className="w-5 h-5 text-blue-600" />
-          <h3 className="text-xl font-semibold text-gray-900">포인트 충전</h3>
-        </div>
-        <form onSubmit={handleCharge} className="space-y-4">
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-              충전 금액
-            </label>
-            <input
-              type="number"
-              id="amount"
-              value={chargeAmount}
-              onChange={(e) => setChargeAmount(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="충전할 포인트 금액"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-              설명 (선택)
-            </label>
-            <input
-              type="text"
-              id="description"
-              value={chargeDescription}
-              onChange={(e) => setChargeDescription(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="충전 설명"
-            />
-          </div>
-          <Button
-            type="submit"
-            loading={loading}
-            className="w-full"
-          >
-            {loading ? '충전 중...' : '충전하기'}
-          </Button>
-        </form>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">거래 내역</h3>
-        {transactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    날짜
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    유형
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    금액
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    잔액
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    설명
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {transactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(transaction.createdAt).toLocaleString('ko-KR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          transaction.type === 'CHARGE'
-                            ? 'bg-green-100 text-green-700'
-                            : transaction.type === 'REWARD' || transaction.type === 'EARN'
-                            ? 'bg-amber-100 text-amber-700'
-                            : transaction.type === 'REFUND'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {transaction.type === 'CHARGE'
-                          ? '충전'
-                          : transaction.type === 'REWARD' || transaction.type === 'EARN'
-                          ? '리워드'
-                          : transaction.type === 'REFUND'
-                          ? '환불'
-                          : transaction.type === 'USE' || transaction.type === 'PAYMENT'
-                          ? '결제 사용'
-                          : transaction.type}
-                      </span>
-                    </td>
-                    <td
-                      className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                        transaction.type === 'CHARGE' || transaction.type === 'REWARD' || transaction.type === 'EARN' || transaction.type === 'REFUND'
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {transaction.type === 'CHARGE' || transaction.type === 'REWARD' || transaction.type === 'EARN' || transaction.type === 'REFUND' ? '+' : '-'}
-                      {transaction.amount.toLocaleString()} P
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.balanceAfter.toLocaleString()} P
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.description}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">거래 내역이 없습니다.</p>
-          </div>
+    <div className={styles.stack}>
+      <div className={styles.notice} aria-live="polite">
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         )}
       </div>
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
+
+      <header className={styles.pageHeader}>
+        <h1>내 지갑</h1>
+        <p>포인트를 충전하고 잔액과 거래 내역을 확인하세요.</p>
+      </header>
+
+      <div className={styles.walletGrid}>
+        <section className={styles.balanceCard} aria-labelledby="balance-heading">
+          <span className={styles.balanceIcon}><Wallet size={26} aria-hidden="true" /></span>
+          <h2 id="balance-heading">현재 포인트 잔액</h2>
+          {wallet ? (
+            <p className={styles.balanceAmount}>{wallet.balance.toLocaleString()} <span>P</span></p>
+          ) : (
+            <p className={styles.loadingBalance}>잔액을 불러오는 중…</p>
+          )}
+        </section>
+
+        <section className={styles.card} aria-labelledby="charge-heading">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><Plus size={22} aria-hidden="true" /></span>
+            <h2 id="charge-heading">포인트 충전</h2>
+          </div>
+          <form onSubmit={handleCharge} className={styles.form}>
+            <div className={styles.field}>
+              <label htmlFor="amount">충전 금액</label>
+              <input
+                type="number"
+                id="amount"
+                value={chargeAmount}
+                onChange={(e) => setChargeAmount(e.target.value)}
+                placeholder="충전할 포인트 금액"
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="description">설명 <span>(선택)</span></label>
+              <input
+                type="text"
+                id="description"
+                value={chargeDescription}
+                onChange={(e) => setChargeDescription(e.target.value)}
+                placeholder="충전 설명"
+              />
+            </div>
+            <Button type="submit" loading={loading} className={styles.primary}>
+              {loading ? '충전 중...' : '충전하기'}
+            </Button>
+          </form>
+        </section>
+      </div>
+
+      <section className={styles.card} aria-labelledby="transactions-heading">
+        <div className={styles.cardHeading}>
+          <span className={styles.icon}><List size={22} aria-hidden="true" /></span>
+          <h2 id="transactions-heading">거래 내역</h2>
+        </div>
+        {transactions.length > 0 ? (
+          <ul className={styles.history}>
+            {transactions.map((transaction) => {
+              const presentation = transactionStyles.get(transaction.type)
+              const { label, tone, icon: Icon, sign } = presentation ?? {
+                label: transaction.type,
+                tone: styles.neutral,
+                icon: List,
+                sign: transaction.amount < 0 ? '−' : '+',
+              }
+
+              return (
+                <li key={transaction.id} className={styles.historyRow}>
+                  <div className={styles.rowIdentity}>
+                    <span className={`${styles.rowIcon} ${tone}`}><Icon size={20} aria-hidden="true" /></span>
+                    <div className={styles.rowCopy}>
+                      <div className={styles.rowTitle}>
+                        <span className={`${styles.badge} ${tone}`}>{label}</span>
+                        {transaction.description && transaction.description !== label && (
+                          <p>{transaction.description}</p>
+                        )}
+                      </div>
+                      <time dateTime={transaction.createdAt}>{new Date(transaction.createdAt).toLocaleString('ko-KR')}</time>
+                    </div>
+                  </div>
+                  <div className={styles.rowValues}>
+                    <strong className={tone}>{sign}{Math.abs(transaction.amount).toLocaleString()} P</strong>
+                    <span>거래 후 잔액 {transaction.balanceAfter.toLocaleString()} P</span>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className={styles.empty}>거래 내역이 없습니다.</p>
+        )}
+      </section>
     </div>
   )
 }

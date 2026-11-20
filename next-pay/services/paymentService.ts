@@ -9,6 +9,13 @@ const stripe = process.env.STRIPE_SECRET_KEY
     })
   : null
 
+function requireStripe() {
+  if (!stripe) {
+    throw new Error('Stripe 비밀 키가 설정되지 않았습니다.')
+  }
+  return stripe
+}
+
 export const paymentService = {
   /**
    * 멱등성 키 생성
@@ -123,7 +130,7 @@ export const paymentService = {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
         include: {
-          customer: true,
+          customer: { select: { id: true, name: true, email: true } },
           merchant: true
         }
       })
@@ -141,6 +148,10 @@ export const paymentService = {
         throw new Error('FDS에 의해 차단된 결제입니다.')
       }
 
+      const stripeForConfirmation = payment.cardAmount > 0 && payment.stripePaymentId && paymentMethodId
+        ? requireStripe()
+        : null
+
       // 포인트 사용 처리
       if (payment.pointAmount > 0) {
         const { walletService } = await import('./walletService')
@@ -154,9 +165,9 @@ export const paymentService = {
 
       // 카드 결제 처리
       if (payment.cardAmount > 0 && payment.stripePaymentId) {
-        if (paymentMethodId) {
+        if (paymentMethodId && stripeForConfirmation) {
           // Payment Method로 결제 승인
-          await stripe.paymentIntents.confirm(payment.stripePaymentId, {
+          await stripeForConfirmation.paymentIntents.confirm(payment.stripePaymentId, {
             payment_method: paymentMethodId
           })
         }
@@ -211,7 +222,7 @@ export const paymentService = {
       // Stripe 환불 처리
       if (payment.stripePaymentId && payment.cardAmount > 0) {
         try {
-          await stripe.refunds.create({
+          await requireStripe().refunds.create({
             payment_intent: payment.stripePaymentId,
             reason: 'requested_by_customer'
           })
@@ -259,11 +270,11 @@ export const paymentService = {
       include: {
         merchant: {
           include: {
-            user: true
+            user: { select: { id: true, name: true, email: true } }
           }
         },
-        customer: true,
-        paymentMethod: true,
+        customer: { select: { id: true, name: true, email: true } },
+        paymentMethod: { select: { id: true, type: true, last4: true, bankName: true } },
         settlement: true
       }
     })
@@ -279,34 +290,21 @@ export const paymentService = {
    * 결제 내역 조회
    */
   async getPayments(
-    userId: string,
+    ownerId: string,
     role: 'customer' | 'merchant',
     status?: PaymentStatus,
     limit: number = 50,
     offset: number = 0
   ) {
-    const where: any = {}
+    const where = role === 'customer' ? { customerId: ownerId, status } : { merchantId: ownerId, status }
 
-    if (role === 'customer') {
-      where.customerId = userId
-    } else if (role === 'merchant') {
-      where.merchantId = userId
-    }
-
-    if (status) {
-      where.status = status
-    }
 
     const payments = await prisma.payment.findMany({
       where,
       include: {
-        merchant: {
-          include: {
-            user: true
-          }
-        },
-        customer: true,
-        paymentMethod: true
+        merchant: { select: { id: true, businessName: true } },
+        customer: { select: { id: true, name: true, email: true } },
+        paymentMethod: { select: { id: true, type: true, last4: true, bankName: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -373,7 +371,7 @@ export const paymentService = {
       throw new Error('STRIPE_WEBHOOK_SECRET 환경 변수가 설정되지 않았습니다.')
     }
 
-    return stripe.webhooks.constructEvent(payload, signature, webhookSecret)
+    return requireStripe().webhooks.constructEvent(payload, signature, webhookSecret)
   },
 
   /**

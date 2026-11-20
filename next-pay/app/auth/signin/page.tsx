@@ -17,7 +17,7 @@ export default function SignInPage() {
   const [showPopup, setShowPopup] = useState(false)
 
   const getRedirectUrl = () => {
-    const userRoles = (session?.user as any)?.roles || []
+    const userRoles = session?.user?.roles ?? []
     if (userRoles.includes('ADMIN')) {
       return '/admin'
     } else if (userRoles.includes('MERCHANT')) {

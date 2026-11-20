@@ -1,20 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { fraudDetectionService } from '@/services/fraudDetectionService'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
-
-    // 관리자 권한 확인
-    const userRoles = (session.user as any).roles
-    if (!userRoles || !userRoles.includes('ADMIN')) {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
-    }
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
 
     const searchParams = request.nextUrl.searchParams
     const minRiskScore = searchParams.get('minRiskScore')

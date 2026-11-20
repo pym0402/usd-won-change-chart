@@ -1,36 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { prisma } from '@/lib/prisma'
 import { MerchantStatus } from '@prisma/client'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
+    const { id } = await params
+    const { status }: { status?: unknown } = await request.json()
 
-    // 관리자 권한 확인
-    const userRoles = (session.user as any).roles
-    if (!userRoles || !userRoles.includes('ADMIN')) {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
-    }
-
-    const { status } = await request.json()
-
-    if (!status || !['APPROVED', 'SUSPENDED'].includes(status)) {
+    if (status !== MerchantStatus.APPROVED && status !== MerchantStatus.SUSPENDED) {
       return NextResponse.json({ error: '유효하지 않은 상태입니다.' }, { status: 400 })
     }
 
     // 가맹점 조회
     const merchant = await prisma.merchant.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
-        user: true
+        user: { select: { id: true, name: true, email: true } }
       }
     })
 
@@ -40,12 +32,12 @@ export async function PUT(
 
     // 상태 업데이트
     const updatedMerchant = await prisma.merchant.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        status: status as MerchantStatus
+        status
       },
       include: {
-        user: true
+        user: { select: { id: true, name: true, email: true } }
       }
     })
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { merchantService } from '@/services/merchantService'
 import { prisma } from '@/lib/prisma'
 
@@ -8,30 +8,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const userId = (session.user as any).id
-    const userRole = (session.user as any).role
+    const user = await authorize('MERCHANT', 'ADMIN')
+    if (user instanceof NextResponse) return user
+    const userId = user.id
     const { id: apiKeyId } = await params
 
-    // 가맹점 또는 관리자만 접근 가능
-    if (userRole !== 'MERCHANT' && userRole !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '가맹점 권한이 필요합니다.' },
-        { status: 403 }
-      )
-    }
+    let merchantId: string
 
-    let merchantId
-
-    if (userRole === 'MERCHANT') {
+    if (user.roles.includes('MERCHANT') && !user.roles.includes('ADMIN')) {
       const merchant = await prisma.merchant.findUnique({
         where: { userId }
       })
@@ -47,14 +31,15 @@ export async function DELETE(
     } else {
       // 관리자가 특정 가맹점의 키를 삭제하는 경우
       const { searchParams } = new URL(request.url)
-      merchantId = searchParams.get('merchantId')
+      const requestedMerchantId = searchParams.get('merchantId')
 
-      if (!merchantId) {
+      if (!requestedMerchantId) {
         return NextResponse.json(
           { error: 'merchantId 쿼리 파라미터가 필요합니다.' },
           { status: 400 }
         )
       }
+      merchantId = requestedMerchantId
     }
 
     await merchantService.deleteApiKey(apiKeyId, merchantId)

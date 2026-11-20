@@ -31,8 +31,8 @@ test.describe('Phase 3: 포인트 및 지갑 시스템', () => {
     expect(response.status()).toBe(401)
   })
 
-  test('3.5 원장 무결성 검증 API', async ({ request }) => {
+  test('3.5 원장 무결성 검증 API - 인증 없음', async ({ request }) => {
     const response = await request.get('/api/ledger/validate')
-    expect([200, 500]).toContain(response.status())
+    expect(response.status()).toBe(401)
   })
 })

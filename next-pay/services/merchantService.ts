@@ -72,7 +72,7 @@ export const merchantService = {
       include: {
         merchant: {
           include: {
-            user: true
+            user: { select: { id: true, name: true, email: true } }
           }
         }
       },

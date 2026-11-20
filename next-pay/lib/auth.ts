@@ -5,6 +5,7 @@ import GitHubProvider from 'next-auth/providers/github'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 import { authConfig } from './auth.config'
+import { normalizeRoles } from './roles'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -16,13 +17,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        const email = credentials?.email as string
-        const password = credentials?.password as string
+        const email = credentials.email
+        const password = credentials.password
 
-        console.log('[Auth] 로그인 시도:', { email })
-
-        if (!email || !password) {
-          console.log('[Auth] 이메일 또는 비밀번호 누락')
+        if (typeof email !== 'string' || !email || typeof password !== 'string' || !password) {
           throw new Error('이메일과 비밀번호를 입력해주세요.')
         }
 
@@ -31,10 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { roles: { include: { role: true } } }
         })
 
-        console.log('[Auth] DB에서 찾은 사용자:', user ? { id: user.id, email: user.email, hasPassword: !!user.password } : null)
-
         if (!user || !user.password) {
-          console.log('[Auth] 사용자를 찾을 수 없거나 비밀번호가 없음')
           throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
         }
 
@@ -43,15 +38,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.password
         )
 
-        console.log('[Auth] 비밀번호 검증 결과:', isPasswordValid)
-
         if (!isPasswordValid) {
-          console.log('[Auth] 비밀번호 불일치')
           throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
         }
 
-        const userRoles = user.roles.map((ur: any) => ur.role.name)
-        console.log('[Auth] 로그인 성공:', { id: user.id, email: user.email, roles: userRoles })
+        const userRoles = normalizeRoles(user.roles.map(({ role }) => role.name))
 
         return {
           id: user.id,
@@ -82,23 +73,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.roles = (user as any).roles
-        console.log('[Auth JWT] 토큰 생성:', { id: token.id, roles: token.roles })
+        token.roles = normalizeRoles(user.roles)
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id as string
-        (session.user as any).roles = token.roles as string[]
-        console.log('[Auth Session] 세션 생성:', {
-          id: (session.user as any).id,
-          email: session.user.email,
-          roles: (session.user as any).roles
-        })
+        if (typeof token.id === 'string') session.user.id = token.id
+        session.user.roles = normalizeRoles(token.roles)
       }
       return session
     }
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
 })

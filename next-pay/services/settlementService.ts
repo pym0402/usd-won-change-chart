@@ -118,12 +118,12 @@ export const settlementService = {
       include: {
         payment: {
           include: {
-            customer: true
+            customer: { select: { id: true, name: true, email: true } }
           }
         },
         merchant: {
           include: {
-            user: true
+            user: { select: { id: true, name: true, email: true } }
           }
         }
       },
@@ -140,12 +140,12 @@ export const settlementService = {
       include: {
         payment: {
           include: {
-            customer: true
+            customer: { select: { id: true, name: true, email: true } }
           }
         },
         merchant: {
           include: {
-            user: true
+            user: { select: { id: true, name: true, email: true } }
           }
         }
       }
@@ -203,12 +203,12 @@ export const settlementService = {
       include: {
         payment: {
           include: {
-            customer: true
+            customer: { select: { id: true, name: true, email: true } }
           }
         },
         merchant: {
           include: {
-            user: true
+            user: { select: { id: true, name: true, email: true } }
           }
         }
       },

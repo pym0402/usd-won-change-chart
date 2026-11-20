@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CreditCard, CheckCircle, XCircle, AlertCircle, Gift } from 'lucide-react'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ChevronDown, CircleAlert, CircleCheck, CircleX, Clock, CreditCard, Gift, List, ReceiptText } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Confetti } from '@/components/ui/confetti'
 import { StripePaymentModal } from '@/components/ui/stripe-payment-modal'
+import styles from '../customer.module.css'
 
 interface PaymentMethod {
   id: string
@@ -26,6 +26,31 @@ interface Payment {
   paymentMethodId?: string
   status: string
   createdAt: string
+}
+
+const pending = { label: '대기 중', tone: styles.amber, icon: Clock }
+const completed = { label: '승인됨', tone: styles.mint, icon: CircleCheck }
+const refunded = { label: '환불됨', tone: styles.violet, icon: CircleAlert }
+
+const paymentStatuses = new Map([
+  ['PENDING', pending],
+  ['PROCESSING', { ...pending, label: '처리 중' }],
+  ['CONFIRMED', completed],
+  ['COMPLETED', completed],
+  ['CANCELLED', { label: '취소됨', tone: styles.red, icon: CircleX }],
+  ['FAILED', { label: '실패', tone: styles.red, icon: CircleX }],
+  ['REFUNDED', refunded],
+  ['PARTIALLY_REFUNDED', { ...refunded, label: '부분 환불' }],
+])
+
+function PaymentStatus({ status }: { status: string }) {
+  const { label, tone, icon: Icon } = paymentStatuses.get(status) ?? {
+    label: status,
+    tone: styles.neutral,
+    icon: CircleAlert,
+  }
+
+  return <span className={`${styles.badge} ${tone}`}><Icon size={15} aria-hidden="true" />{label}</span>
 }
 
 export default function PaymentsPage() {
@@ -64,7 +89,7 @@ export default function PaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const response = await fetch('/api/payments')
+      const response = await fetch('/api/payments?scope=customer')
       if (response.ok) {
         const data = await response.json()
         setPayments(data.payments || data)
@@ -237,292 +262,197 @@ export default function PaymentsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-700'
-      case 'CONFIRMED':
-        return 'bg-green-100 text-green-700'
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-700'
-      case 'FAILED':
-        return 'bg-red-100 text-red-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <AlertCircle className="w-4 h-4" />
-      case 'CONFIRMED':
-        return <CheckCircle className="w-4 h-4" />
-      case 'CANCELLED':
-      case 'FAILED':
-        return <XCircle className="w-4 h-4" />
-      default:
-        return null
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return '대기중'
-      case 'CONFIRMED':
-        return '승인됨'
-      case 'CANCELLED':
-        return '취소됨'
-      case 'FAILED':
-        return '실패'
-      default:
-        return status
-    }
-  }
-
   return (
-    <div className="space-y-6">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <CreditCard className="w-5 h-5 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">결제 테스트</h2>
-        </div>
-
-        <form onSubmit={handleCreatePaymentIntent} className="space-y-4">
-          <div>
-            <label htmlFor="merchantId" className="block text-sm font-medium text-gray-700 mb-2">
-              가맹점 ID
-            </label>
-            <input
-              type="text"
-              id="merchantId"
-              value={merchantId}
-              onChange={(e) => setMerchantId(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="가맹점 ID (예: merchant_123)"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-              결제 금액
-            </label>
-            <input
-              type="number"
-              id="amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="결제 금액"
-              required
-            />
-            {amount && parseInt(amount) > 0 && (
-              <div className="mt-2 flex items-center space-x-2 text-sm text-green-600">
-                <Gift className="w-4 h-4" />
-                <span>예상 적립 포인트: {calculateEarnedPoints(amount).toLocaleString()}P (1%)</span>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="pointAmount" className="block text-sm font-medium text-gray-700 mb-2">
-              포인트 사용 금액 (선택)
-            </label>
-            <input
-              type="number"
-              id="pointAmount"
-              value={pointAmount}
-              onChange={(e) => setPointAmount(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="0"
-              min="0"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-2">
-              결제 수단 (선택)
-            </label>
-            <select
-              id="paymentMethod"
-              value={selectedPaymentMethod}
-              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            >
-              <option value="">새 카드로 직접 결제 (Stripe 결제창 호출)</option>
-              {paymentMethods.map((method) => (
-                <option key={method.id} value={method.id}>
-                  {method.type === 'CARD'
-                    ? `카드: ${method.paymentMethodId}${method.isDefault ? ' (기본)' : ''}`
-                    : `계좌: ${method.bankName} - ${method.bankAccount}${method.isDefault ? ' (기본)' : ''}`}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <Button
-            type="submit"
-            loading={loading}
-            className="w-full"
-          >
-            {loading ? '생성 중...' : '결제하기'}
-          </Button>
-        </form>
-      </div>
-
-      {recentPaymentResult && (
-        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl shadow-sm border border-indigo-100 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <CheckCircle className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-lg font-semibold text-gray-900">최근 결제 / Payment Intent 생성 결과</h3>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 mb-1">결제 ID</p>
-              <p className="text-sm font-mono font-semibold text-gray-900">{recentPaymentResult.id.slice(0, 12)}...</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 mb-1">총 결제 금액</p>
-              <p className="text-sm font-semibold text-gray-900">{recentPaymentResult.amount.toLocaleString()}원</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 mb-1">사용 포인트</p>
-              <p className="text-sm font-semibold text-gray-900">{recentPaymentResult.pointAmount.toLocaleString()}P</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 mb-1">남은 지갑 잔액</p>
-              <p className="text-sm font-semibold text-indigo-600">{currentWalletBalance?.toLocaleString() || '0'}P</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 mb-1">적립 리워드 (1%)</p>
-              <p className="text-sm font-semibold text-amber-600">{Math.floor(recentPaymentResult.amount * 0.01).toLocaleString()}P</p>
-            </div>
-          </div>
-          <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">현재 결제 상태</p>
-            <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(recentPaymentResult.status)}`}>
-              {getStatusIcon(recentPaymentResult.status)}
-              <span>{getStatusText(recentPaymentResult.status)}</span>
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-6">결제 내역</h3>
-        {payments.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    결제 ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    가맹점 ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    금액
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    포인트
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    상태
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    날짜
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    작업
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {payments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {payment.id.slice(0, 12)}...
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {payment.merchantId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {payment.amount.toLocaleString()}원
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {payment.pointAmount.toLocaleString()}P
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
-                        {getStatusIcon(payment.status)}
-                        <span>{getStatusText(payment.status)}</span>
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(payment.createdAt).toLocaleString('ko-KR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                      {payment.status === 'PENDING' && (
-                        <>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleConfirmPayment(payment.id)}
-                          >
-                            승인
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleCancelPayment(payment.id)}
-                          >
-                            취소
-                          </Button>
-                        </>
-                      )}
-                      {payment.status === 'CONFIRMED' && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleCancelPayment(payment.id)}
-                        >
-                          취소
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">결제 내역이 없습니다.</p>
-          </div>
+    <div className={styles.stack}>
+      <div className={styles.notice} aria-live="polite">
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         )}
       </div>
+      <Confetti trigger={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      <StripePaymentModal
-        isOpen={stripeModalOpen}
-        onClose={() => setStripeModalOpen(false)}
-        clientSecret={clientSecret}
-        amount={parseInt(amount) || 0}
-        onSuccess={handleStripePaymentSuccess}
-        onError={(error) => setToast({ message: error, type: 'error' })}
-      />
+      <header className={styles.pageHeader}>
+        <h1>결제 테스트</h1>
+        <p>카드와 포인트로 결제를 테스트하고 승인 결과를 확인하세요.</p>
+      </header>
+
+      <div className={styles.paymentGrid}>
+        <section className={styles.card} aria-labelledby="payment-form-heading">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><CreditCard size={22} aria-hidden="true" /></span>
+            <h2 id="payment-form-heading">결제 정보</h2>
+          </div>
+          <form onSubmit={handleCreatePaymentIntent} className={styles.form}>
+            <div className={styles.field}>
+              <label htmlFor="merchantId">가맹점 ID</label>
+              <input
+                type="text"
+                id="merchantId"
+                value={merchantId}
+                onChange={(e) => setMerchantId(e.target.value)}
+                placeholder="예: merchant_123"
+                required
+              />
+            </div>
+
+            <div className={styles.fieldsGrid}>
+              <div className={styles.field}>
+                <label htmlFor="amount">결제 금액 (원)</label>
+                <input
+                  type="number"
+                  id="amount"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="결제 금액"
+                  required
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="pointAmount">포인트 사용 금액 <span>(선택)</span></label>
+                <input
+                  type="number"
+                  id="pointAmount"
+                  value={pointAmount}
+                  onChange={(e) => setPointAmount(e.target.value)}
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            {amount && parseInt(amount) > 0 && (
+              <p className={styles.rewardNote}>
+                <Gift size={18} aria-hidden="true" />
+                <span>예상 적립 포인트 <strong>{calculateEarnedPoints(amount).toLocaleString()} P</strong> (1%)</span>
+              </p>
+            )}
+
+            <div className={styles.field}>
+              <label htmlFor="paymentMethod">결제 수단 <span>(선택)</span></label>
+              <div className={styles.select}>
+                <select
+                  id="paymentMethod"
+                  value={selectedPaymentMethod}
+                  onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                >
+                  <option value="">새 카드로 결제 (Stripe)</option>
+                  {paymentMethods.map((method) => (
+                    <option key={method.id} value={method.id}>
+                      {method.type === 'CARD'
+                        ? `카드: ${method.paymentMethodId}${method.isDefault ? ' (기본)' : ''}`
+                        : `계좌: ${method.bankName} - ${method.bankAccount}${method.isDefault ? ' (기본)' : ''}`}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={18} aria-hidden="true" />
+              </div>
+            </div>
+
+            <Button type="submit" loading={loading} className={styles.primary}>
+              {loading ? '생성 중...' : '결제하기'}
+            </Button>
+          </form>
+        </section>
+
+        <section className={`${styles.card} ${styles.result}`} aria-labelledby="recent-payment-heading" aria-live="polite">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><ReceiptText size={22} aria-hidden="true" /></span>
+            <h2 id="recent-payment-heading">최근 결제 결과</h2>
+          </div>
+
+          {recentPaymentResult ? (
+            <>
+              <div className={styles.resultAmount}>
+                <div>
+                  <p>총 결제 금액</p>
+                  <strong>{recentPaymentResult.amount.toLocaleString()}원</strong>
+                </div>
+                <PaymentStatus status={recentPaymentResult.status} />
+              </div>
+              <dl className={styles.receiptDetails}>
+                <div>
+                  <dt>결제 ID</dt>
+                  <dd>{recentPaymentResult.id}</dd>
+                </div>
+                <div>
+                  <dt>사용 포인트</dt>
+                  <dd>{recentPaymentResult.pointAmount.toLocaleString()} P</dd>
+                </div>
+                <div>
+                  <dt>남은 지갑 잔액</dt>
+                  <dd>{currentWalletBalance?.toLocaleString() || '0'} P</dd>
+                </div>
+                <div>
+                  <dt>적립 리워드 (1%)</dt>
+                  <dd className={styles.rewardValue}>{Math.floor(recentPaymentResult.amount * 0.01).toLocaleString()} P</dd>
+                </div>
+              </dl>
+            </>
+          ) : (
+            <p className={styles.empty}>결제 승인 결과가 여기에 표시됩니다.</p>
+          )}
+        </section>
+      </div>
+
+      <section className={styles.card} aria-labelledby="payments-heading">
+        <div className={styles.cardHeading}>
+          <span className={styles.icon}><List size={22} aria-hidden="true" /></span>
+          <h2 id="payments-heading">결제 내역</h2>
+        </div>
+
+        {payments.length > 0 ? (
+          <ul className={styles.history}>
+            {payments.map((payment) => (
+              <li key={payment.id} className={`${styles.historyRow} ${styles.paymentRow}`}>
+                <div className={styles.rowIdentity}>
+                  <span className={`${styles.rowIcon} ${styles.blue}`}><CreditCard size={20} aria-hidden="true" /></span>
+                  <div className={styles.rowCopy}>
+                    <div className={styles.rowTitle}>
+                      <p title={payment.id}>결제 {payment.id.slice(0, 12)}...</p>
+                      <PaymentStatus status={payment.status} />
+                    </div>
+                    <span>가맹점 {payment.merchantId}</span>
+                    <time dateTime={payment.createdAt}>{new Date(payment.createdAt).toLocaleString('ko-KR')}</time>
+                  </div>
+                </div>
+                <div className={styles.rowValues}>
+                  <strong>{payment.amount.toLocaleString()}원</strong>
+                  <span>사용 포인트 {payment.pointAmount.toLocaleString()} P</span>
+                </div>
+                {(payment.status === 'PENDING' || payment.status === 'CONFIRMED') && (
+                  <div className={styles.rowActions}>
+                    {payment.status === 'PENDING' && (
+                      <Button variant="secondary" size="sm" className={styles.action} onClick={() => handleConfirmPayment(payment.id)}>
+                        승인
+                      </Button>
+                    )}
+                    <Button variant="danger" size="sm" className={`${styles.action} ${styles.danger}`} onClick={() => handleCancelPayment(payment.id)}>
+                      취소
+                    </Button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.empty}>결제 내역이 없습니다.</p>
+        )}
+      </section>
+
+      <div className={styles.checkout}>
+        <StripePaymentModal
+          isOpen={stripeModalOpen}
+          onClose={() => setStripeModalOpen(false)}
+          clientSecret={clientSecret}
+          amount={parseInt(amount) || 0}
+          onSuccess={handleStripePaymentSuccess}
+          onError={(error) => setToast({ message: error, type: 'error' })}
+        />
+      </div>
     </div>
   )
 }

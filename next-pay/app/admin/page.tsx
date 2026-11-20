@@ -1,11 +1,13 @@
 'use client'
 
+import { PortalHeading, PortalMetric, PortalTable } from '@/app/_portal/portal'
+import styles from '@/app/_portal/portal.module.css'
+
 import { useEffect, useState } from 'react'
 import { SettlementStatus } from '@prisma/client'
-import { TrendingUp, DollarSign, Store, Clock, AlertTriangle, Shield, Eye, PieChart } from 'lucide-react'
+import { TrendingUp, DollarSign, Store, Clock, AlertTriangle, Shield, PieChart } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { GMVChart } from '@/components/charts/gmv-chart'
 import { RevenueChart } from '@/components/charts/revenue-chart'
 
@@ -235,13 +237,13 @@ export default function AdminPage() {
   const getRiskLevelColor = (level: string) => {
     switch (level) {
       case 'HIGH':
-        return 'bg-red-100 text-red-700'
+        return styles.red
       case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-700'
+        return styles.amber
       case 'LOW':
-        return 'bg-green-100 text-green-700'
+        return styles.mint
       default:
-        return 'bg-gray-100 text-gray-700'
+        return ''
     }
   }
 
@@ -261,13 +263,13 @@ export default function AdminPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-yellow-100 text-yellow-700'
+        return styles.amber
       case 'REVIEWED':
-        return 'bg-blue-100 text-blue-700'
+        return styles.blue
       case 'BLOCKED':
-        return 'bg-red-100 text-red-700'
+        return styles.red
       default:
-        return 'bg-gray-100 text-gray-700'
+        return ''
     }
   }
 
@@ -293,29 +295,29 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">관리자 대시보드</h2>
+    <div className={styles.stack}>
+      <PortalHeading title="관리자 대시보드" description="거래 현황과 수수료 수익을 확인하고 정산과 이상 결제를 관리하세요." />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card
-          title="GMV"
+      <div className={styles.metrics}>
+        <PortalMetric
+          title="총 거래액 (GMV)"
           value={stats ? formatAmount(stats.gmv) : '-'}
           subtitle={`${stats?.transactionCount || 0}건 거래`}
           icon={TrendingUp}
         />
-        <Card
+        <PortalMetric
           title="수수료 수익"
           value={stats ? formatAmount(stats.commissionRevenue) : '-'}
           subtitle={`${stats?.settlementCount || 0}건 정산`}
           icon={DollarSign}
         />
-        <Card
+        <PortalMetric
           title="활성 가맹점"
           value={`${stats?.activeMerchants || 0}개`}
-          subtitle={<a href="/admin/merchants" className="text-blue-600 hover:underline">관리하기</a>}
+          subtitle={<a href="/admin/merchants" className={styles.textLink}>관리하기</a>}
           icon={Store}
         />
-        <Card
+        <PortalMetric
           title="이상 결제 감지"
           value={`${stats?.fdsStats?.review || suspiciousTransactions.filter(t => t.status === 'PENDING').length}건`}
           subtitle={`총 ${stats?.fdsStats?.total || suspiciousTransactions.length}건`}
@@ -324,20 +326,20 @@ export default function AdminPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={styles.chartGrid}>
         {chartData && chartData.gmvData.length > 0 && (
-          <GMVChart data={chartData.gmvData} />
+          <div className={styles.chart}><GMVChart data={chartData.gmvData} /></div>
         )}
         {chartData && chartData.revenueData.length > 0 && (
-          <RevenueChart data={chartData.revenueData} />
+          <div className={styles.chart}><RevenueChart data={chartData.revenueData} /></div>
         )}
       </div>
 
       {categoryData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
+        <div className={styles.surface}>
+          <div className={styles.toolbar}>
+            <div className={styles.groupTitle}>
+              <div className={styles.icon}>
                 <PieChart className="w-5 h-5 text-purple-600" />
               </div>
               <div>
@@ -347,33 +349,30 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={styles.grid}>
             {categoryData.map((category) => (
-              <div key={category.category} className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
+              <div key={category.category} className={styles.subcard}>
+                <div className={styles.split}>
                   <h4 className="font-semibold text-gray-900">{category.category}</h4>
                   <span className="text-sm font-medium text-purple-600">{category.percentage}%</span>
                 </div>
                 <div className="space-y-1">
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className={styles.split}>
                     <span>총 거래액</span>
                     <span className="font-medium">{formatAmount(category.totalAmount)}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className={styles.split}>
                     <span>거래 건수</span>
                     <span className="font-medium">{category.transactionCount}건</span>
                   </div>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className={styles.split}>
                     <span>가맹점 수</span>
                     <span className="font-medium">{category.merchantCount}개</span>
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-purple-600 h-2 rounded-full transition-all"
-                      style={{ width: `${category.percentage}%` }}
-                    />
+                  <div className={styles.progress}>
+                    <div style={{ width: `${category.percentage}%` }} />
                   </div>
                 </div>
               </div>
@@ -382,10 +381,10 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className={styles.surface}>
+        <div className={styles.toolbar}>
           <h3 className="text-xl font-bold text-gray-900">정산 승인 대기 목록</h3>
-          <Button
+          <Button className={styles.button}
             variant="secondary"
             size="sm"
             onClick={() => window.location.href = '/api/admin/settlements/export'}
@@ -396,59 +395,59 @@ export default function AdminPage() {
 
         {settlements.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">승인 대기 중인 정산이 없습니다.</p>
+            <p className={styles.empty}>승인 대기 중인 정산이 없습니다.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+          <PortalTable label="정산 승인 대기 목록">
+            <table>
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     가맹점
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     결제 ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     총 금액
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     수수료
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     정산 금액
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     생성일
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     작업
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {settlements.map((settlement) => (
                   <tr key={settlement.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {settlement.merchant.businessName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                    <td className={styles.wrapCell}>
                       {settlement.payment.id.slice(0, 12)}...
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatAmount(settlement.grossAmount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-semibold">
+                    <td className={styles.negative}>
                       {formatAmount(settlement.commission)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
+                    <td className={styles.positive}>
                       {formatAmount(settlement.netAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(settlement.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Button
+                      <Button className={styles.primaryButton}
                         variant="primary"
                         size="sm"
                         onClick={() => approveSettlement(settlement.id)}
@@ -460,76 +459,69 @@ export default function AdminPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </PortalTable>
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-red-50 rounded-lg">
+      <div className={styles.surface}>
+        <div className={styles.toolbar}>
+          <div className={styles.groupTitle}>
+            <div className={styles.icon}>
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900">이상 결제 감지 (FDS)</h3>
-              <p className="text-sm text-gray-500">Fraud Detection System - 의심스러운 결제 모니터링</p>
+              <p className="text-sm text-gray-500">검토가 필요한 결제와 위험 점수를 확인하세요.</p>
             </div>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            전체 보기
-          </Button>
         </div>
 
         {suspiciousTransactions.length === 0 ? (
           <div className="text-center py-12">
             <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">감지된 이상 결제가 없습니다.</p>
+            <p className={styles.empty}>감지된 이상 결제가 없습니다.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+          <PortalTable label="이상 결제 목록">
+            <table>
               <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     결제 ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     금액
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     고객 ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     가맹점 ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     위험 점수
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     위험 등급
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     사유
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     상태
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     감지 시간
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th scope="col">
                     작업
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {suspiciousTransactions.map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                    <td className={styles.wrapCell}>
                       {transaction.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
@@ -542,13 +534,10 @@ export default function AdminPage() {
                       {transaction.merchantId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div className={styles.actions}>
+                        <div className={styles.progress}>
                           <div
-                            className={`h-2 rounded-full ${
-                              transaction.riskScore >= 80 ? 'bg-red-500' :
-                              transaction.riskScore >= 50 ? 'bg-yellow-500' : 'bg-green-500'
-                            }`}
+                            className={`${transaction.riskScore >= 80 ? styles.red : transaction.riskScore >= 50 ? styles.amber : styles.mint}`}
                             style={{ width: `${transaction.riskScore}%` }}
                           />
                         </div>
@@ -556,15 +545,15 @@ export default function AdminPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRiskLevelColor(transaction.riskLevel)}`}>
+                      <span className={`${styles.badge} ${getRiskLevelColor(transaction.riskLevel)}`}>
                         {getRiskLevelText(transaction.riskLevel)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <td className={styles.wrapCell}>
                       {transaction.reason}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(transaction.status)}`}>
+                      <span className={`${styles.badge} ${getStatusColor(transaction.status)}`}>
                         {getStatusText(transaction.status)}
                       </span>
                     </td>
@@ -574,14 +563,14 @@ export default function AdminPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       {transaction.status === 'PENDING' && (
                         <>
-                          <Button
+                          <Button className={styles.primaryButton}
                             variant="primary"
                             size="sm"
                             onClick={() => handleFraudAction(transaction.fraudDetectionId, 'ALLOW')}
                           >
                             허용
                           </Button>
-                          <Button
+                          <Button className={styles.dangerButton}
                             variant="danger"
                             size="sm"
                             onClick={() => handleFraudAction(transaction.fraudDetectionId, 'BLOCK')}
@@ -591,14 +580,14 @@ export default function AdminPage() {
                         </>
                       )}
                       {transaction.status === 'REVIEWED' && (
-                        <span className="text-sm text-gray-500">처리됨</span>
+                        <span className={styles.muted}>처리됨</span>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </PortalTable>
         )}
       </div>
     </div>

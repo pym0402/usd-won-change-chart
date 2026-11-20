@@ -5,13 +5,17 @@ import bcrypt from 'bcryptjs'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { email, password, name } = body
+    const { email, password, name }: { email?: unknown; password?: unknown; name?: unknown } = body
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email || typeof password !== 'string' || !password) {
       return NextResponse.json(
         { error: '이메일과 비밀번호는 필수입니다.' },
         { status: 400 }
       )
+    }
+
+    if (!/^[^\s@]+@[^\s@]+$/.test(email) || (name != null && typeof name !== 'string')) {
+      return NextResponse.json({ error: '이메일 또는 이름 형식이 올바르지 않습니다.' }, { status: 400 })
     }
 
     // 이메일 중복 확인

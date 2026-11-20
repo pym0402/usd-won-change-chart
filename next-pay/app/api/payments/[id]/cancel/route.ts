@@ -1,24 +1,30 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { paymentService } from '@/services/paymentService'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
+    const user = await authorize('CUSTOMER', 'MERCHANT')
+    if (user instanceof NextResponse) return user
 
     const body = await request.json()
     const { reason } = body
     const { id: paymentId } = await params
+
+    const ownedPayment = await prisma.payment.findFirst({
+      where: { id: paymentId, OR: [
+          ...(user.roles.includes('CUSTOMER') ? [{ customerId: user.id }] : []),
+          ...(user.roles.includes('MERCHANT') ? [{ merchant: { userId: user.id } }] : []),
+        ] },
+      select: { id: true }
+    })
+    if (!ownedPayment) {
+      return NextResponse.json({ error: '결제 정보를 찾을 수 없습니다.' }, { status: 404 })
+    }
 
     const payment = await paymentService.cancelPayment(paymentId, reason)
 

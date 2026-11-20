@@ -1,36 +1,34 @@
 import { NextResponse } from 'next/server'
+import { authorize } from '@/lib/authorize'
 import { settlementService } from '@/services/settlementService'
 import { SettlementStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
-    // TODO: 인증 추가 (NextAuth v5 마이그레이션 후)
+    const user = await authorize('MERCHANT', 'ADMIN')
+    if (user instanceof NextResponse) return user
+
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status') as SettlementStatus | null
-
-    // 임시: 관리자의 경우 대기 목록 조회
-    if (status === 'PENDING') {
-      const settlements = await settlementService.getPendingSettlements()
-      return NextResponse.json(settlements)
+    const status = Object.values(SettlementStatus).find((value) => value === searchParams.get('status'))
+    if (searchParams.has('status') && !status) {
+      return NextResponse.json({ error: '유효하지 않은 정산 상태입니다.' }, { status: 400 })
     }
 
-    // 임시: 첫 번째 가맹점의 정산 내역 조회
-    const merchant = await prisma.merchant.findFirst()
+    const scope = searchParams.get('scope') ?? (user.roles.includes('ADMIN') ? 'admin' : 'merchant')
+    if (scope === 'admin' && user.roles.includes('ADMIN') && status === SettlementStatus.PENDING) {
+      return NextResponse.json(await settlementService.getPendingSettlements())
+    }
+    if (scope !== 'merchant' || !user.roles.includes('MERCHANT')) {
+      return NextResponse.json({ error: '정산 내역 조회 권한이 없습니다.' }, { status: 403 })
+    }
 
+    const merchant = await prisma.merchant.findUnique({ where: { userId: user.id }, select: { id: true } })
     if (!merchant) {
-      return NextResponse.json(
-        { error: '가맹점 정보를 찾을 수 없습니다.' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: '가맹점 정보를 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    const settlements = await settlementService.getSettlements(
-      merchant.id,
-      status ? (status as SettlementStatus) : undefined
-    )
-
-    return NextResponse.json(settlements)
+    return NextResponse.json(await settlementService.getSettlements(merchant.id, status))
   } catch (error) {
     console.error('정산 내역 조회 오류:', error)
     return NextResponse.json(

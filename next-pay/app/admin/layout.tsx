@@ -1,18 +1,12 @@
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Next Pay - 관리자 포털</h1>
-        </div>
-      </header>
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {children}
-      </main>
-    </div>
-  )
+import { PortalShell } from '@/app/_portal/portal-shell'
+
+const links = [
+  { href: '/admin', label: '대시보드' },
+  { href: '/admin/merchants', label: '가맹점 관리' },
+  { href: '/admin/applications', label: '입점 심사' },
+  { href: '/admin/ledger', label: '복식부기 원장' },
+]
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return <PortalShell title="관리자 포털" links={links}>{children}</PortalShell>
 }

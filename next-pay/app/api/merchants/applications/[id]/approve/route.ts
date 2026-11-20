@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { merchantService } from '@/services/merchantService'
 
 export async function PUT(
@@ -7,29 +7,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const adminId = (session.user as any).id
-    const userRole = (session.user as any).role
-
-    // 관리자만 접근 가능
-    if (userRole !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
-      )
-    }
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
 
     const { id: applicationId } = await params
 
-    const merchant = await merchantService.approveApplication(applicationId, adminId)
+    const merchant = await merchantService.approveApplication(applicationId, user.id)
 
     return NextResponse.json(merchant)
   } catch (error) {

@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
+import { authorize } from '@/lib/authorize'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: Request) {
   try {
-    // TODO: 인증 추가 (NextAuth v5 마이그레이션 후)
-    const merchant = await prisma.merchant.findFirst()
+    const user = await authorize('MERCHANT')
+    if (user instanceof NextResponse) return user
+
+    const merchant = await prisma.merchant.findUnique({ where: { userId: user.id } })
 
     if (!merchant) {
       return NextResponse.json(

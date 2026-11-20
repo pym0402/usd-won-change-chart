@@ -1,11 +1,13 @@
 'use client'
 
+import { PortalHeading, PortalMetric } from '@/app/_portal/portal'
+import styles from '@/app/_portal/portal.module.css'
+
 import { useEffect, useState } from 'react'
 import { SettlementStatus } from '@prisma/client'
 import Link from 'next/link'
 import { DollarSign, TrendingDown, TrendingUp, Clock, Key, CreditCard, Code, Copy, Check } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { Card } from '@/components/ui/card'
 import { SettlementChart } from '@/components/charts/settlement-chart'
 
 interface SettlementSummary {
@@ -23,6 +25,8 @@ interface ChartDataPoint {
   netAmount: number
   commission: number
 }
+
+const exampleApiKey = 'pk_test_example_0000000000000000'
 
 export default function MerchantPage() {
   const [summary, setSummary] = useState<SettlementSummary | null>(null)
@@ -75,10 +79,6 @@ export default function MerchantPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const generateApiKey = () => {
-    return 'pk_test_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -88,29 +88,29 @@ export default function MerchantPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">가맹점 대시보드</h2>
+    <div className={styles.stack}>
+      <PortalHeading title="가맹점 대시보드" description="결제와 정산 흐름을 살펴보고 결제 연동을 관리하세요." />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card
+      <div className={styles.metrics}>
+        <PortalMetric
           title="총 결제 금액"
           value={summary ? formatAmount(summary.totalGrossAmount) : '-'}
           icon={DollarSign}
         />
-        <Card
+        <PortalMetric
           title="총 수수료"
           value={summary ? formatAmount(summary.totalCommission) : '-'}
           subtitle={`수수료율: ${summary ? formatRate(summary.commissionRate) : '-'}`}
           icon={TrendingDown}
         />
-        <Card
+        <PortalMetric
           title="총 정산 금액 (순수익)"
           value={summary ? formatAmount(summary.totalNetAmount) : '-'}
           subtitle="수수료 제외 실수령액"
           icon={TrendingUp}
           highlight
         />
-        <Card
+        <PortalMetric
           title="정산 대기"
           value={`${summary?.pendingCount || 0}건`}
           subtitle={`완료: ${summary?.completedCount || 0}건`}
@@ -119,16 +119,16 @@ export default function MerchantPage() {
       </div>
 
       {chartData.length > 0 && (
-        <SettlementChart data={chartData} />
+        <div className={styles.chart}><SettlementChart data={chartData} /></div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={styles.grid}>
         <Link
           href="/merchant/settlements"
-          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+          className={styles.workspaceCard}
         >
-          <div className="flex items-start space-x-3">
-            <div className="p-3 bg-blue-50 rounded-lg">
+          <div className={styles.groupTitle}>
+            <div className={styles.icon}>
               <CreditCard className="w-6 h-6 text-blue-600" />
             </div>
             <div>
@@ -137,40 +137,40 @@ export default function MerchantPage() {
             </div>
           </div>
         </Link>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-start space-x-3 mb-4">
-            <div className="p-3 bg-purple-50 rounded-lg">
+        <div className={styles.surface}>
+          <div className={styles.groupTitle}>
+            <div className={styles.icon}>
               <Key className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">API 키 관리</h3>
-              <p className="text-gray-600 text-sm">결제 API 키 발급 및 관리</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">테스트 키 예시</h3>
+              <p className="text-gray-600 text-sm">샌드박스 API 키 형식을 확인하세요.</p>
             </div>
           </div>
-          <div className="mt-4 space-y-3">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <label className="block text-xs font-medium text-gray-500 mb-1">테스트 API Key</label>
-              <div className="flex items-center space-x-2">
-                <code className="flex-1 text-sm font-mono text-gray-700 bg-white px-3 py-2 rounded border border-gray-200">
-                  {generateApiKey()}
+          <div className={styles.sectionContent}>
+            <div className={styles.subcard}>
+              <span className={styles.muted}>API 키 예시</span>
+              <div className={styles.actions}>
+                <code className={styles.inlineCode}>
+                  {exampleApiKey}
                 </code>
                 <button
-                  onClick={() => copyToClipboard(generateApiKey())}
-                  className="p-2 hover:bg-gray-200 rounded transition-colors"
-                  title="복사"
+                  onClick={() => copyToClipboard(exampleApiKey)}
+                  className={styles.button}
+                  aria-label="테스트 키 복사"
                 >
                   {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
                 </button>
               </div>
             </div>
-            <div className="text-xs text-gray-500">
-              * 이 키는 샌드박스 환경에서만 사용 가능합니다.
+            <div className={styles.muted}>
+              API 요청에는 발급받은 키를 사용하세요.
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-start space-x-3 mb-4">
-            <div className="p-3 bg-green-50 rounded-lg">
+        <div className={styles.surface}>
+          <div className={styles.groupTitle}>
+            <div className={styles.icon}>
               <Code className="w-6 h-6 text-green-600" />
             </div>
             <div>
@@ -178,10 +178,10 @@ export default function MerchantPage() {
               <p className="text-gray-600 text-sm">외부 쇼핑몰에 결제 기능 연동</p>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
+          <div className={styles.sectionContent}>
             <Link
               href="/merchant/sdk-guide"
-              className="block w-full text-center px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
+              className={styles.button}
             >
               연동 가이드 보기
             </Link>

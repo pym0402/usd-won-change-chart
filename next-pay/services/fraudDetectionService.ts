@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { FraudAction, PaymentStatus } from '@prisma/client'
+import { FraudAction, PaymentStatus, type Prisma } from '@prisma/client'
 
 interface RiskFactor {
   type: string
@@ -11,6 +11,25 @@ interface FraudDetectionResult {
   riskScore: number
   riskFactors: RiskFactor[]
   action: FraudAction
+}
+
+async function getDetectionsWithPayments(where: Prisma.FraudDetectionWhereInput) {
+  const detections = await prisma.fraudDetection.findMany({ where, orderBy: { createdAt: 'desc' } })
+  if (!detections.length) return []
+
+  const payments = await prisma.payment.findMany({
+    where: { id: { in: detections.map(({ paymentId }) => paymentId) } },
+    include: {
+      customer: { select: { id: true, name: true, email: true } },
+      merchant: { include: { user: { select: { id: true, name: true, email: true } } } },
+    },
+  })
+  const paymentsById = new Map(payments.map((payment) => [payment.id, payment]))
+
+  return detections.flatMap((detection) => {
+    const payment = paymentsById.get(detection.paymentId)
+    return payment ? [{ ...detection, payment }] : []
+  })
 }
 
 export const fraudDetectionService = {
@@ -263,77 +282,21 @@ export const fraudDetectionService = {
    * 검토 대상 결제 목록 조회
    */
   async getReviewPendingPayments() {
-    return await prisma.fraudDetection.findMany({
-      where: {
-        action: FraudAction.REVIEW,
-        reviewedBy: null
-      },
-      include: {
-        payment: {
-          include: {
-            customer: true,
-            merchant: {
-              include: {
-                user: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    return getDetectionsWithPayments({ action: FraudAction.REVIEW, reviewedBy: null })
   },
 
   /**
    * 차단된 결제 목록 조회
    */
   async getBlockedPayments() {
-    return await prisma.fraudDetection.findMany({
-      where: {
-        action: FraudAction.BLOCK
-      },
-      include: {
-        payment: {
-          include: {
-            customer: true,
-            merchant: {
-              include: {
-                user: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    return getDetectionsWithPayments({ action: FraudAction.BLOCK })
   },
 
   /**
    * 모든 FDS 레코드 조회
    */
   async getAllFraudDetections(minRiskScore?: number) {
-    const where: any = {}
-
-    if (minRiskScore !== undefined) {
-      where.riskScore = { gte: minRiskScore }
-    }
-
-    return await prisma.fraudDetection.findMany({
-      where,
-      include: {
-        payment: {
-          include: {
-            customer: true,
-            merchant: {
-              include: {
-                user: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    return getDetectionsWithPayments(minRiskScore === undefined ? {} : { riskScore: { gte: minRiskScore } })
   },
 
   /**
@@ -341,8 +304,7 @@ export const fraudDetectionService = {
    */
   async takeAction(fraudDetectionId: string, action: FraudAction, reviewerId: string) {
     const fraudDetection = await prisma.fraudDetection.findUnique({
-      where: { id: fraudDetectionId },
-      include: { payment: true }
+      where: { id: fraudDetectionId }
     })
 
     if (!fraudDetection) {
@@ -352,6 +314,11 @@ export const fraudDetectionService = {
     // 이미 검토된 경우
     if (fraudDetection.reviewedBy) {
       throw new Error('이미 검토된 결제입니다.')
+    }
+
+    const payment = await prisma.payment.findUnique({ where: { id: fraudDetection.paymentId } })
+    if (!payment) {
+      throw new Error('결제 정보를 찾을 수 없습니다.')
     }
 
     await prisma.$transaction(async (tx) => {
@@ -373,7 +340,7 @@ export const fraudDetectionService = {
         })
       } else if (action === FraudAction.ALLOW) {
         // 차단된 결제를 허용으로 변경 시 결제 재처리 필요
-        if (fraudDetection.payment.status === PaymentStatus.FAILED) {
+        if (payment.status === PaymentStatus.FAILED) {
           await tx.payment.update({
             where: { id: fraudDetection.paymentId },
             data: { status: PaymentStatus.PENDING }
@@ -382,7 +349,7 @@ export const fraudDetectionService = {
       }
     })
 
-    return fraudDetection
+    return { ...fraudDetection, payment }
   },
 
   /**

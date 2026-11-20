@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { authorize } from '@/lib/authorize'
 import { walletService } from '@/services/walletService'
 
 export async function GET(request: Request) {
   try {
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
+
     const result = await walletService.validateLedgerIntegrity()
 
     return NextResponse.json(result)

@@ -6,7 +6,7 @@ import { Wallet, CreditCard, LogOut, User, Store, LayoutDashboard } from 'lucide
 
 export default function Header() {
   const { data: session, status } = useSession()
-  const userRoles = (session?.user as any)?.roles || []
+  const userRoles = session?.user?.roles ?? []
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/' })

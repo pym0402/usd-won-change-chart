@@ -1,19 +1,13 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { paymentService } from '@/services/paymentService'
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
+    const user = await authorize('CUSTOMER')
+    if (user instanceof NextResponse) return user
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const userId = (session.user as any).id
+    const userId = user.id
     const body = await request.json()
     const { merchantId, amount, paymentMethodId, pointAmount } = body
 

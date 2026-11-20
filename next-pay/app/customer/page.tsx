@@ -1,55 +1,60 @@
 import Link from 'next/link'
-import { Wallet, CreditCard, ArrowRight, Gift } from 'lucide-react'
+import { ChevronRight, CreditCard, Gift, Wallet, Zap } from 'lucide-react'
+import homeStyles from '../home.module.css'
+import styles from './customer.module.css'
+
+const shortcuts = [
+  {
+    href: '/customer/wallet',
+    title: '내 지갑',
+    description: '포인트 잔액을 확인하고 충전·사용 내역을 살펴보세요.',
+    icon: Wallet,
+    accent: homeStyles.blue,
+  },
+  {
+    href: '/customer/payments',
+    title: '간편결제',
+    description: '카드와 포인트로 결제를 테스트하고 결과를 확인하세요.',
+    icon: Zap,
+    accent: homeStyles.mint,
+  },
+  {
+    href: '/customer/payment-methods',
+    title: '결제 수단',
+    description: '카드와 계좌를 등록하고 기본 결제 수단을 관리하세요.',
+    icon: CreditCard,
+    accent: homeStyles.violet,
+  },
+  {
+    href: '/customer/transfer',
+    title: '송금/선물',
+    description: '다른 회원에게 포인트를 보내고 송금 내역을 확인하세요.',
+    icon: Gift,
+    accent: styles.amber,
+  },
+]
 
 export default function CustomerPage() {
   return (
-    <div>
-      <h2 className="text-3xl font-bold text-gray-900 mb-8">고객 대시보드</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          href="/customer/wallet"
-          className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-        >
-          <div className="bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-            <Wallet className="w-7 h-7 text-indigo-600" />
-          </div>
-          <h3 className="text-xl font-bold mb-3 text-gray-800">내 지갑</h3>
-          <p className="text-gray-600 text-sm leading-relaxed">포인트 충전 및 내역 관리</p>
-        </Link>
-
-        <Link
-          href="/customer/payments"
-          className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-        >
-          <div className="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-            <ArrowRight className="w-7 h-7 text-emerald-600" />
-          </div>
-          <h3 className="text-xl font-bold mb-3 text-gray-800">간편결제</h3>
-          <p className="text-gray-600 text-sm leading-relaxed">원클릭 결제 수행</p>
-        </Link>
-
-        <Link
-          href="/customer/payment-methods"
-          className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-        >
-          <div className="bg-gradient-to-br from-violet-100 to-purple-100 rounded-2xl w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-            <CreditCard className="w-7 h-7 text-violet-600" />
-          </div>
-          <h3 className="text-xl font-bold mb-3 text-gray-800">결제 수단</h3>
-          <p className="text-gray-600 text-sm leading-relaxed">카드 및 계좌 관리</p>
-        </Link>
-
-        <Link
-          href="/customer/transfer"
-          className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-indigo-300 hover:-translate-y-1"
-        >
-          <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-            <Gift className="w-7 h-7 text-amber-600" />
-          </div>
-          <h3 className="text-xl font-bold mb-3 text-gray-800">송금/선물</h3>
-          <p className="text-gray-600 text-sm leading-relaxed">회원 간 포인트 송금 및 디지털 선물하기</p>
-        </Link>
-      </div>
+    <div className={styles.stack}>
+      <header className={styles.pageHeader}>
+        <h1>고객 대시보드</h1>
+        <p>포인트 관리부터 결제와 송금까지 한곳에서 이용하세요.</p>
+      </header>
+      <ul className={styles.shortcutGrid}>
+        {shortcuts.map(({ href, title, description, icon: Icon, accent }) => (
+          <li key={href} className={accent}>
+            <Link href={href} className={`${homeStyles.portalCard} ${styles.shortcut}`}>
+              <span className={homeStyles.portalIcon}><Icon size={24} aria-hidden="true" /></span>
+              <div className={styles.shortcutCopy}>
+                <h2>{title}</h2>
+                <p>{description}</p>
+              </div>
+              <ChevronRight size={20} className={styles.shortcutArrow} aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

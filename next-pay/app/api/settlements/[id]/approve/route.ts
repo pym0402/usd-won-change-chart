@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { authorize } from '@/lib/authorize'
 import { settlementService } from '@/services/settlementService'
 
 export async function PUT(
@@ -6,7 +7,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // TODO: 인증 추가 (NextAuth v5 마이그레이션 후)
+    const user = await authorize('ADMIN')
+    if (user instanceof NextResponse) return user
+
     const body = await request.json()
     const { transactionId } = body
     const { id: settlementId } = await params
