@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorize } from '@/lib/authorize'
 import { paymentService } from '@/services/paymentService'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { merchantId, amount, paymentMethodId, pointAmount } = body
 
-    if (!merchantId || !amount) {
+    if (typeof merchantId !== 'string' || !merchantId || !amount) {
       return NextResponse.json(
         { error: 'merchantId와 amount는 필수입니다.' },
         { status: 400 }
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const merchant = await prisma.merchant.findFirst({
+      where: { id: merchantId, status: 'APPROVED' },
+      select: { id: true },
+    })
+    if (!merchant) return NextResponse.json({ error: '결제할 수 있는 가맹점을 선택해 주세요.' }, { status: 400 })
 
     const result = await paymentService.createPaymentIntent(
       merchantId,

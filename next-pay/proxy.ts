@@ -9,8 +9,20 @@ export async function proxy(request: NextRequest) {
   const token = secret
     ? await getToken({ req: request, secret, secureCookie: authUrl.startsWith('https:') })
     : null
+  const path = request.nextUrl.pathname
+  if (token?.temporaryPasswordExpiresAt !== undefined) {
+    if (path.startsWith('/api/auth/')) return NextResponse.next()
+    if (path.startsWith('/api/')) {
+      return NextResponse.json({ error: '먼저 비밀번호를 변경해 주세요.' }, { status: 403 })
+    }
+
+    const destination = token.temporaryPasswordExpiresAt > Date.now() ? '/auth/change-password' : '/auth/signin'
+    return NextResponse.redirect(new URL(destination, request.url))
+  }
+
+  if (path === '/' || path.startsWith('/api/')) return NextResponse.next()
   const roles = normalizeRoles(token?.roles)
-  const section = request.nextUrl.pathname.split('/')[1]
+  const section = path.split('/')[1]
 
   if (
     (section === 'customer' && roles.includes('CUSTOMER')) ||
@@ -24,5 +36,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/customer/:path*', '/merchant/:path*', '/admin/:path*']
+  matcher: ['/', '/customer/:path*', '/merchant/:path*', '/admin/:path*', '/api/:path*']
 }

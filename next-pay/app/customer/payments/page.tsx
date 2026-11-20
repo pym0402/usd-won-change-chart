@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePortalQuery } from '@/app/_portal/use-portal-query'
 import { ChevronDown, CircleAlert, CircleCheck, CircleX, Clock, CreditCard, Gift, List, ReceiptText } from 'lucide-react'
 import { Toast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,8 @@ function PaymentStatus({ status }: { status: string }) {
 }
 
 export default function PaymentsPage() {
+  const { result: merchantResult, refresh: refreshMerchants } = usePortalQuery<Array<{ id: string; businessName: string }>>('/api/merchants/approved')
+  const merchants = merchantResult.status === 'ready' ? merchantResult.data : []
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [merchantId, setMerchantId] = useState('')
@@ -119,8 +122,8 @@ export default function PaymentsPage() {
       const amt = parseInt(amount)
       const ptAmt = parseInt(pointAmount)
 
-      if (!merchantId || !amt || amt <= 0) {
-        setToast({ message: '가맹점 ID와 결제 금액을 입력해주세요.', type: 'error' })
+      if (!merchants.some((merchant) => merchant.id === merchantId) || !amt || amt <= 0) {
+        setToast({ message: '가맹점을 선택하고 결제 금액을 입력해 주세요.', type: 'error' })
         setLoading(false)
         return
       }
@@ -140,6 +143,11 @@ export default function PaymentsPage() {
 
       if (response.ok) {
         const data = await response.json()
+        if (data.blocked) {
+          setToast({ message: '이 결제는 이상 거래 검토로 차단되었습니다.', type: 'error' })
+          fetchPayments()
+          return
+        }
         // Stripe 모달 열기
         if (data.clientSecret) {
           setClientSecret(data.clientSecret)
@@ -147,7 +155,7 @@ export default function PaymentsPage() {
           setStripeModalOpen(true)
         } else {
           // 등록된 결제 수단이 있거나 포인트만 사용한 경우 - 자동으로 결제 승인 진행
-          if (selectedPaymentMethod) {
+          if (selectedPaymentMethod || data.payment.cardAmount === 0) {
             await handleConfirmPayment(data.payment.id)
           } else {
             setToast({ message: 'Payment Intent가 생성되었습니다.', type: 'success' })
@@ -288,15 +296,26 @@ export default function PaymentsPage() {
           </div>
           <form onSubmit={handleCreatePaymentIntent} className={styles.form}>
             <div className={styles.field}>
-              <label htmlFor="merchantId">가맹점 ID</label>
-              <input
-                type="text"
-                id="merchantId"
-                value={merchantId}
-                onChange={(e) => setMerchantId(e.target.value)}
-                placeholder="예: merchant_123"
-                required
-              />
+              <label htmlFor="merchantId">가맹점</label>
+              <div className={styles.select}>
+                <select id="merchantId" value={merchantId} onChange={(e) => setMerchantId(e.target.value)}
+                  disabled={merchants.length === 0} required>
+                  <option value="">가맹점을 선택하세요</option>
+                  {merchants.map(({ id, businessName }) => (
+                    <option key={id} value={id}>{businessName} ({id.slice(0, 6)}…{id.slice(-4)})</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} aria-hidden="true" />
+              </div>
+              {merchantResult.status === 'loading' && <p className={styles.formHint} role="status">가맹점을 불러오는 중입니다.</p>}
+              {merchantResult.status === 'error' && (
+                <div className={styles.formHint} role="alert">
+                  가맹점을 불러오지 못했습니다. <button type="button" className={styles.retry} onClick={refreshMerchants}>다시 시도</button>
+                </div>
+              )}
+              {merchantResult.status === 'ready' && merchants.length === 0 && (
+                <p className={styles.formHint} role="status">아직 승인된 가맹점이 없습니다.</p>
+              )}
             </div>
 
             <div className={styles.fieldsGrid}>
@@ -352,7 +371,7 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            <Button type="submit" loading={loading} className={styles.primary}>
+            <Button type="submit" loading={loading} disabled={merchants.length === 0} className={styles.primary}>
               {loading ? '생성 중...' : '결제하기'}
             </Button>
           </form>

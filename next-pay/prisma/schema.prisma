@@ -53,6 +53,9 @@ model User {
   email         String    @unique
   name          String?
   password      String?
+  passwordVersion Int @default(0)
+  temporaryPasswordHash String?
+  temporaryPasswordExpiresAt DateTime?
   image         String?
   emailVerified DateTime?
   createdAt     DateTime  @default(now())

@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ChevronDown, CreditCard, Landmark, Plus } from 'lucide-react'
+import styles from '../customer.module.css'
 
 interface PaymentMethod {
   id: string
   userId: string
   type: string
   paymentMethodId?: string
+  last4?: string | null
   bankName?: string
   bankAccount?: string
   isDefault: boolean
@@ -133,152 +136,95 @@ export default function PaymentMethodsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">결제 수단 관리</h2>
-        {error && <p className="text-red-600 mb-4">{error}</p>}
-        {success && <p className="text-green-600 mb-4">{success}</p>}
-
-        <form onSubmit={handleAddPaymentMethod} className="space-y-4">
-          <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-              결제 수단 유형
-            </label>
-            <select
-              id="type"
-              value={type}
-              onChange={(e) => setType(e.target.value as 'CARD' | 'BANK_ACCOUNT')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="CARD">카드</option>
-              <option value="BANK_ACCOUNT">계좌</option>
-            </select>
+    <div className={styles.stack}>
+      <header className={styles.pageHeader}>
+        <h1>결제 수단 관리</h1>
+        <p>카드와 계좌를 등록하고 기본 결제 수단을 설정하세요.</p>
+      </header>
+      <div className={styles.paymentGrid}>
+        <section className={styles.card} aria-labelledby="add-method">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><Plus size={22} aria-hidden="true" /></span>
+            <h2 id="add-method">결제 수단 등록</h2>
           </div>
-
-          {type === 'CARD' && (
-            <div>
-              <label htmlFor="paymentMethodId" className="block text-sm font-medium text-gray-700 mb-1">
-                카드 ID
-              </label>
-              <input
-                type="text"
-                id="paymentMethodId"
-                value={paymentMethodId}
-                onChange={(e) => setPaymentMethodId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="카드 결제 수단 ID"
-                required
-              />
+          <form onSubmit={handleAddPaymentMethod} className={styles.form}>
+            {error && <p role="alert" className={styles.formError}>{error}</p>}
+            {success && <p role="status" className={styles.formSuccess}>{success}</p>}
+            <div className={styles.field}>
+              <label htmlFor="type">결제 수단 유형</label>
+              <div className={styles.select}>
+                <select id="type" value={type} onChange={(e) => setType(e.target.value as 'CARD' | 'BANK_ACCOUNT')}>
+                  <option value="CARD">카드</option>
+                  <option value="BANK_ACCOUNT">계좌</option>
+                </select>
+                <ChevronDown size={18} aria-hidden="true" />
+              </div>
             </div>
-          )}
-
-          {type === 'BANK_ACCOUNT' && (
-            <>
-              <div>
-                <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-1">
-                  은행명
-                </label>
-                <input
-                  type="text"
-                  id="bankName"
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="은행명 (예: 신한은행)"
-                  required
-                />
+            {type === 'CARD' && (
+              <div className={styles.field}>
+                <label htmlFor="paymentMethodId">카드 ID</label>
+                <input type="text" id="paymentMethodId" value={paymentMethodId}
+                  onChange={(e) => setPaymentMethodId(e.target.value)} placeholder="카드 결제 수단 ID" required />
               </div>
-              <div>
-                <label htmlFor="bankAccount" className="block text-sm font-medium text-gray-700 mb-1">
-                  계좌번호
-                </label>
-                <input
-                  type="text"
-                  id="bankAccount"
-                  value={bankAccount}
-                  onChange={(e) => setBankAccount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="계좌번호"
-                  required
-                />
-              </div>
-            </>
-          )}
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isDefault"
-              checked={isDefault}
-              onChange={(e) => setIsDefault(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900">
+            )}
+            {type === 'BANK_ACCOUNT' && (
+              <>
+                <div className={styles.field}>
+                  <label htmlFor="bankName">은행명</label>
+                  <input type="text" id="bankName" value={bankName}
+                    onChange={(e) => setBankName(e.target.value)} placeholder="예: 신한은행" required />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="bankAccount">계좌번호</label>
+                  <input type="text" id="bankAccount" value={bankAccount}
+                    onChange={(e) => setBankAccount(e.target.value)} placeholder="계좌번호" required />
+                </div>
+              </>
+            )}
+            <label className={styles.checkField}>
+              <input type="checkbox" id="isDefault" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />
               기본 결제 수단으로 설정
             </label>
+            <button type="submit" disabled={loading} className={styles.primary}>
+              {loading ? '등록 중...' : '결제 수단 등록'}
+            </button>
+          </form>
+        </section>
+        <section className={styles.card} aria-labelledby="saved-methods">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><CreditCard size={22} aria-hidden="true" /></span>
+            <h2 id="saved-methods">등록된 결제 수단</h2>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-          >
-            {loading ? '등록 중...' : '결제 수단 등록'}
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-xl font-semibold mb-4">등록된 결제 수단</h3>
-        {paymentMethods.length > 0 ? (
-          <div className="space-y-4">
-            {paymentMethods.map((method) => (
-              <div
-                key={method.id}
-                className="border border-gray-200 rounded-lg p-4 flex justify-between items-center"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">
-                      {method.type === 'CARD' ? '카드' : '계좌'}
+          {paymentMethods.length > 0 ? (
+            <ul className={styles.history}>
+              {paymentMethods.map((method) => (
+                <li key={method.id} className={styles.historyRow}>
+                  <div className={styles.rowIdentity}>
+                    <span className={`${styles.rowIcon} ${styles.blue}`}>
+                      {method.type === 'CARD' ? <CreditCard size={20} aria-hidden="true" /> : <Landmark size={20} aria-hidden="true" />}
                     </span>
-                    {method.isDefault && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                        기본
-                      </span>
-                    )}
+                    <div className={styles.rowCopy}>
+                      <div className={styles.rowTitle}>
+                        <p>{method.type === 'CARD' ? '카드' : '계좌'}</p>
+                        {method.isDefault && <span className={`${styles.badge} ${styles.blue}`}>기본</span>}
+                      </div>
+                      <span>{method.type === 'CARD'
+                        ? (method.last4 ? `끝자리 ${method.last4}` : method.paymentMethodId)
+                        : `${method.bankName} · ${method.bankAccount}`}</span>
+                      <time dateTime={method.createdAt}>{new Date(method.createdAt).toLocaleString('ko-KR')}</time>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {method.type === 'CARD'
-                      ? `카드 ID: ${method.paymentMethodId}`
-                      : `${method.bankName} - ${method.bankAccount}`}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    등록일: {new Date(method.createdAt).toLocaleString('ko-KR')}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {!method.isDefault && (
-                    <button
-                      onClick={() => handleSetDefault(method.id)}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
-                    >
-                      기본 설정
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(method.id)}
-                    className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-600">등록된 결제 수단이 없습니다.</p>
-        )}
+                  <div className={styles.rowActions}>
+                    {!method.isDefault && (
+                      <button type="button" className={styles.action} onClick={() => handleSetDefault(method.id)}>기본 설정</button>
+                    )}
+                    <button type="button" className={`${styles.action} ${styles.danger}`} onClick={() => handleDelete(method.id)}>삭제</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : <p className={styles.empty}>등록된 결제 수단이 없습니다.</p>}
+        </section>
       </div>
     </div>
   )

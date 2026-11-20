@@ -31,6 +31,11 @@ export default function SignInPage() {
   }
 
   useEffect(() => {
+    if (status === 'authenticated' && session?.user?.mustChangePassword) {
+      router.replace('/auth/change-password')
+      return
+    }
+
     if (status === 'authenticated' && session && !showPopup) {
       const redirectUrl = getRedirectUrl()
       router.push(redirectUrl)
@@ -179,12 +184,12 @@ export default function SignInPage() {
         <p className={styles.switch}>계정이 없으신가요? <Link href="/auth/register">회원가입</Link></p>
       </AuthFrame>
 
-      {showPopup && (
+      {showPopup && !session?.user?.mustChangePassword && (
         <AuthSuccess
           title="로그인 완료"
           onConfirm={() => {
             setShowPopup(false)
-            window.location.href = '/'
+            window.location.href = session?.user?.mustChangePassword ? '/auth/change-password' : '/'
           }}
         />
       )}

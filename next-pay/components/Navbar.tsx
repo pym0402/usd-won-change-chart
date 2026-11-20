@@ -116,6 +116,10 @@ export default function Navbar() {
                   </Link>
                 )}
 
+                <Link href="/auth/change-password" className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">
+                  비밀번호 변경
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 px-4 py-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all text-sm font-medium"

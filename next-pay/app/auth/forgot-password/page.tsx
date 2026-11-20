@@ -3,20 +3,20 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { AuthFrame, RecoveryResult } from '../auth-frame'
+import { AuthFrame } from '../auth-frame'
 import styles from '../auth.module.css'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
-  const [tempPassword, setTempPassword] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setTempPassword('')
+    setNotice('')
     setLoading(true)
 
     try {
@@ -35,8 +35,8 @@ export default function ForgotPasswordPage() {
         return
       }
 
-      if (data.tempPassword) {
-        setTempPassword(data.tempPassword)
+      if (data.message) {
+        setNotice(data.message)
       }
     } catch (error) {
       setError('비밀번호 재설정 중 오류가 발생했습니다.')
@@ -48,18 +48,13 @@ export default function ForgotPasswordPage() {
   return (
     <AuthFrame
       title="비밀번호 찾기"
-      description="가입한 이메일 주소를 입력하면 임시 비밀번호를 발급받을 수 있어요."
+      description="가입한 이메일 주소로 임시 비밀번호를 받아 로그인할 수 있어요."
     >
       <form className={styles.form} onSubmit={handleSubmit}>
         {error && <p role="alert" className={styles.error}>{error}</p>}
 
-        {tempPassword ? (
-          <RecoveryResult
-            title="임시 비밀번호를 발급했습니다"
-            label="임시 비밀번호"
-            value={tempPassword}
-            description="임시 비밀번호로 로그인한 뒤 비밀번호를 변경해 주세요."
-          />
+        {notice ? (
+          <p role="status" className={styles.success}>{notice} 받은 비밀번호는 15분 안에 사용해 주세요.</p>
         ) : (
           <>
             <div className={styles.field}>

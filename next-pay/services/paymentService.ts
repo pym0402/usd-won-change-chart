@@ -195,6 +195,7 @@ export const paymentService = {
             paymentId
           )
         }
+        return { ...payment, status: PaymentStatus.COMPLETED }
       }
 
       return payment

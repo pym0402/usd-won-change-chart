@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { Send, Gift } from 'lucide-react'
 import { Dialog } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Toast } from '@/components/ui/toast'
 import { Confetti } from '@/components/ui/confetti'
+import styles from '../customer.module.css'
 
 export default function TransferPage() {
   const [recipientEmail, setRecipientEmail] = useState('')
@@ -65,101 +65,62 @@ export default function TransferPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
+    <div className={styles.stack}>
+      <div className={styles.notice} aria-live="polite">
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
       <Confetti trigger={showSuccess} onComplete={() => {}} />
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Send className="w-5 h-5 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">포인트 송금</h2>
-        </div>
-
-        <form onSubmit={handleTransfer} className="space-y-6">
-          <Input
-            label="수신자 이메일"
-            type="email"
-            value={recipientEmail}
-            onChange={(e) => setRecipientEmail(e.target.value)}
-            placeholder="example@email.com"
-            required
-          />
-
-          <Input
-            label="송금 금액"
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0"
-            min="1"
-            required
-          />
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              메시지 (선택)
-            </label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-              rows={3}
-              placeholder="포인트 선물합니다."
-            />
+      <header className={styles.pageHeader}>
+        <h1>송금/선물</h1>
+        <p>받는 사람의 이메일로 포인트를 보내세요.</p>
+      </header>
+      <div className={styles.paymentGrid}>
+        <section className={styles.card} aria-labelledby="transfer-heading">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><Send size={22} aria-hidden="true" /></span>
+            <h2 id="transfer-heading">포인트 송금</h2>
           </div>
-
-          <Button
-            type="submit"
-            loading={loading}
-            className="w-full"
-          >
-            {loading ? '송금 중...' : '송금하기'}
-          </Button>
-        </form>
+          <form onSubmit={handleTransfer} className={styles.form}>
+            <div className={styles.field}>
+              <label htmlFor="recipientEmail">수신자 이메일</label>
+              <input id="recipientEmail" type="email" value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)} placeholder="example@email.com" required />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="transferAmount">송금 금액 (P)</label>
+              <input id="transferAmount" type="number" value={amount}
+                onChange={(e) => setAmount(e.target.value)} placeholder="0" min="1" required />
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="transferMessage">메시지 <span>(선택)</span></label>
+              <textarea id="transferMessage" value={message} onChange={(e) => setMessage(e.target.value)}
+                rows={3} placeholder="포인트 선물합니다." />
+            </div>
+            <Button type="submit" loading={loading} className={styles.primary}>
+              {loading ? '송금 중...' : '송금하기'}
+            </Button>
+          </form>
+        </section>
+        <aside className={`${styles.card} ${styles.result}`} aria-labelledby="transfer-tips">
+          <div className={styles.cardHeading}>
+            <span className={styles.icon}><Gift size={22} aria-hidden="true" /></span>
+            <h2 id="transfer-tips">보내기 전에</h2>
+          </div>
+          <ul className={styles.tips}>
+            <li>받는 사람의 Next Pay 가입 이메일을 확인해 주세요.</li>
+            <li>포인트와 함께 전달할 메시지를 남길 수 있어요.</li>
+          </ul>
+        </aside>
       </div>
-
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-        <div className="flex items-start space-x-3">
-          <div className="p-3 bg-purple-100 rounded-lg">
-            <Gift className="w-6 h-6 text-purple-600" />
+      <div className={styles.checkout}>
+        <Dialog isOpen={showSuccess} onClose={handleCloseSuccess} title="송금 완료" size="sm">
+          <div className={styles.dialogBody}>
+            <span className={`${styles.rowIcon} ${styles.mint}`}><Send size={22} aria-hidden="true" /></span>
+            <p><strong>{successData?.recipientName}</strong>님에게 포인트를 보냈습니다.</p>
+            <Button onClick={handleCloseSuccess} className={styles.primary}>확인</Button>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">선물하기 팁</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• 친구에게 포인트를 보내 특별한 선물을 해보세요</li>
-              <li>• 이메일로 수신자를 검색할 수 있습니다</li>
-              <li>• 메시지를 남겨 마음을 전하세요</li>
-            </ul>
-          </div>
-        </div>
+        </Dialog>
       </div>
-
-      <Dialog
-        isOpen={showSuccess}
-        onClose={handleCloseSuccess}
-        title="송금 완료!"
-        size="sm"
-      >
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <Send className="w-8 h-8 text-green-600" />
-          </div>
-          <p className="text-gray-600">
-            <span className="font-semibold text-gray-900">{successData?.recipientName}</span>님에게
-            <span className="font-semibold text-gray-900">{amount}P</span>를 송금했습니다.
-          </p>
-          <Button onClick={handleCloseSuccess} className="w-full">
-            확인
-          </Button>
-        </div>
-      </Dialog>
     </div>
   )
 }

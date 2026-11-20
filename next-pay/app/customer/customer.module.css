@@ -224,6 +224,7 @@
 }
 
 .field input,
+.field textarea,
 .field select {
   box-sizing: border-box;
   width: 100%;
@@ -236,7 +237,8 @@
   font: inherit;
 }
 
-.field input::placeholder {
+.field input::placeholder,
+.field textarea::placeholder {
   color: #65758c;
 }
 
@@ -265,6 +267,7 @@
 }
 
 .form .primary,
+.dialogBody .primary,
 .rowActions .action {
   @apply inline-flex items-center justify-center gap-2 rounded-xl;
   box-sizing: border-box;
@@ -274,7 +277,8 @@
   cursor: pointer;
 }
 
-.form .primary {
+.form .primary,
+.dialogBody .primary {
   min-height: 3rem;
   margin-top: 0.25rem;
   padding-inline: 1.25rem;
@@ -282,7 +286,8 @@
   color: #fff;
 }
 
-.form .primary:hover:not(:disabled) {
+.form .primary:hover:not(:disabled),
+.dialogBody .primary:hover:not(:disabled) {
   background: #1648be;
 }
 
@@ -297,7 +302,7 @@
 }
 
 .navigation a:focus-visible,
-.field :is(input, select):focus-visible,
+.field :is(input, textarea, select):focus-visible,
 .form .primary:focus-visible,
 .rowActions .action:focus-visible {
   outline: 3px solid var(--blue);
@@ -613,3 +618,65 @@
     width: calc(100% - 2rem);
   }
 }
+
+.field textarea {
+  padding-block: 0.75rem;
+  resize: vertical;
+}
+
+.checkField {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+}
+
+.checkField input {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--blue);
+}
+
+.formError,
+.formSuccess,
+.formHint {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.formError { background: #fbeaec; color: #a62d43; }
+.formSuccess { background: #e2f6ee; color: #08765e; }
+.formHint { background: #f5f7fb; color: var(--muted); }
+
+.retry {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tips {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+  color: var(--muted);
+}
+
+.tips li + li { margin-top: 0.5rem; }
+
+.dialogBody {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.dialogBody p { margin: 0; }
+.dialogBody button { width: 100%; }

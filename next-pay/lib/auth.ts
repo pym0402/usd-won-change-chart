@@ -38,7 +38,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.password
         )
 
-        if (!isPasswordValid) {
+        const temporary = !isPasswordValid && !!user.temporaryPasswordHash &&
+          !!user.temporaryPasswordExpiresAt && user.temporaryPasswordExpiresAt > new Date() &&
+          await bcrypt.compare(password, user.temporaryPasswordHash)
+
+        if (!isPasswordValid && !temporary) {
           throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
         }
 
@@ -49,7 +53,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           image: user.image,
-          roles: userRoles
+          roles: temporary ? [] : userRoles,
+          passwordVersion: user.passwordVersion,
+          temporaryPasswordExpiresAt: temporary ? user.temporaryPasswordExpiresAt?.getTime() : undefined
         }
       }
     }),
@@ -74,6 +80,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.roles = normalizeRoles(user.roles)
+        token.passwordVersion = user.passwordVersion
+        token.temporaryPasswordExpiresAt = user.temporaryPasswordExpiresAt
+      }
+      if (token.id && (token.passwordVersion !== undefined || normalizeRoles(token.roles).length)) {
+        const account = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { passwordVersion: true, temporaryPasswordExpiresAt: true },
+        })
+        if (!account || (token.passwordVersion ?? 0) !== account.passwordVersion) return null
+        if (token.temporaryPasswordExpiresAt !== undefined &&
+            (token.temporaryPasswordExpiresAt <= Date.now() ||
+              account.temporaryPasswordExpiresAt?.getTime() !== token.temporaryPasswordExpiresAt)) return null
       }
       return token
     },
@@ -81,6 +99,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token && session.user) {
         if (typeof token.id === 'string') session.user.id = token.id
         session.user.roles = normalizeRoles(token.roles)
+        session.user.mustChangePassword = token.temporaryPasswordExpiresAt !== undefined
       }
       return session
     }
