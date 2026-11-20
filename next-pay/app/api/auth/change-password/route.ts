@@ -20,18 +20,18 @@ export async function POST(request: Request) {
       where: { id },
       select: { password: true, passwordVersion: true, temporaryPasswordHash: true, temporaryPasswordExpiresAt: true },
     })
-    if (!user?.password) {
+    const temporary = session.user.mustChangePassword
+    if (!user || (!temporary && !user.password)) {
       return NextResponse.json({ error: '변경할 수 있는 비밀번호가 없습니다.' }, { status: 400 })
     }
 
-    const temporary = session.user.mustChangePassword
     const currentHash = temporary ? user.temporaryPasswordHash : user.password
     if (!currentHash || (temporary && (!user.temporaryPasswordExpiresAt || user.temporaryPasswordExpiresAt <= new Date())) ||
         !(await bcrypt.compare(currentPassword, currentHash))) {
       return NextResponse.json({ error: '현재 비밀번호가 올바르지 않거나 만료되었습니다.' }, { status: 400 })
     }
 
-    if (newPassword === currentPassword || (temporary && await bcrypt.compare(newPassword, user.password))) {
+    if (newPassword === currentPassword || (temporary && user.password && await bcrypt.compare(newPassword, user.password))) {
       return NextResponse.json({ error: '이전 비밀번호와 다른 새 비밀번호를 입력해 주세요.' }, { status: 400 })
     }
 

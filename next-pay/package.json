@@ -10,6 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "demo:recovery": "node --env-file=.env scripts/demo-recovery.mjs",
     "lint": "next lint",
     "postinstall": "prisma skills sync || exit 0",
     "seed": "tsx prisma/seed.ts"

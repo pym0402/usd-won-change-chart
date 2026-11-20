@@ -333,3 +333,33 @@
   margin: 0.625rem 0 0;
   word-break: keep-all;
 }
+
+.recoveryActions {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.recoveryLink {
+  text-decoration: none;
+}
+
+.copyButton {
+  min-height: 2.75rem;
+  border: 1px solid #dce3ef;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  background: #edf3ff;
+}
+
+.copyButton:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}

@@ -29,14 +29,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { roles: { include: { role: true } } }
         })
 
-        if (!user || !user.password) {
+        if (!user) {
           throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.')
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          password,
-          user.password
-        )
+        const isPasswordValid = !!user.password && await bcrypt.compare(password, user.password)
 
         const temporary = !isPasswordValid && !!user.temporaryPasswordHash &&
           !!user.temporaryPasswordExpiresAt && user.temporaryPasswordExpiresAt > new Date() &&
