@@ -102,14 +102,15 @@ export const merchantService = {
       }
 
       // 신청서 승인
-      await tx.merchantApplication.update({
-        where: { id: applicationId },
+      const reviewed = await tx.merchantApplication.updateMany({
+        where: { id: applicationId, status: ApplicationStatus.PENDING },
         data: {
           status: ApplicationStatus.APPROVED,
           reviewedBy: adminId,
           reviewedAt: new Date()
         }
       })
+      if (!reviewed.count) throw new Error('이미 처리된 신청입니다.')
 
       // 가맹점 승인
       const updatedMerchant = await tx.merchant.update({
@@ -118,6 +119,16 @@ export const merchantService = {
           status: MerchantStatus.APPROVED,
           approvedAt: new Date()
         }
+      })
+
+      const merchantRole = await tx.role.upsert({
+        where: { name: 'MERCHANT' },
+        create: { name: 'MERCHANT' },
+        update: { name: 'MERCHANT' },
+      })
+      await tx.userRole.createMany({
+        data: { userId: updatedMerchant.userId, roleId: merchantRole.id },
+        skipDuplicates: true,
       })
 
       return updatedMerchant
@@ -146,8 +157,8 @@ export const merchantService = {
       }
 
       // 신청서 거부
-      await tx.merchantApplication.update({
-        where: { id: applicationId },
+      const reviewed = await tx.merchantApplication.updateMany({
+        where: { id: applicationId, status: ApplicationStatus.PENDING },
         data: {
           status: ApplicationStatus.REJECTED,
           reviewedBy: adminId,
@@ -155,6 +166,7 @@ export const merchantService = {
           reason
         }
       })
+      if (!reviewed.count) throw new Error('이미 처리된 신청입니다.')
 
       // 가맹점 거부
       const updatedMerchant = await tx.merchant.update({

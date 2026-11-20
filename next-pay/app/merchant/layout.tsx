@@ -6,6 +6,7 @@ const links = [
   { href: '/merchant/settlements', label: '정산 내역' },
   { href: '/merchant/qr-payment', label: 'QR 결제' },
   { href: '/merchant/sdk-guide', label: 'SDK 가이드' },
+  { href: '/merchant/apply', label: '입점 신청' },
 ]
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {

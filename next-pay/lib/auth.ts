@@ -83,12 +83,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.id && (token.passwordVersion !== undefined || normalizeRoles(token.roles).length)) {
         const account = await prisma.user.findUnique({
           where: { id: token.id },
-          select: { passwordVersion: true, temporaryPasswordExpiresAt: true },
+          select: {
+            passwordVersion: true,
+            temporaryPasswordExpiresAt: true,
+            roles: { select: { role: { select: { name: true } } } }
+          },
         })
         if (!account || (token.passwordVersion ?? 0) !== account.passwordVersion) return null
         if (token.temporaryPasswordExpiresAt !== undefined &&
             (token.temporaryPasswordExpiresAt <= Date.now() ||
               account.temporaryPasswordExpiresAt?.getTime() !== token.temporaryPasswordExpiresAt)) return null
+        token.roles = token.temporaryPasswordExpiresAt === undefined
+          ? normalizeRoles(account.roles.map(({ role }) => role.name))
+          : []
       }
       return token
     },

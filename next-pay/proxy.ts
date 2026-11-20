@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { NextFetchEvent, NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { auth } from './lib/auth'
 import { normalizeRoles } from './lib/roles'
 
-export async function proxy(request: NextRequest) {
+const merchantPortalProxy = auth((request, _event: NextFetchEvent) => {
+  if (request.auth?.user?.roles.includes('MERCHANT')) return NextResponse.next()
+  return NextResponse.redirect(new URL('/', request.url))
+})
+
+export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
   const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? request.url
   const token = secret
@@ -20,17 +26,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(destination, request.url))
   }
 
-  if (path === '/' || path.startsWith('/api/')) return NextResponse.next()
+  if (path === '/' || path === '/merchant/apply' || path.startsWith('/api/')) {
+    return NextResponse.next()
+  }
   const roles = normalizeRoles(token?.roles)
   const section = path.split('/')[1]
 
   if (
     (section === 'customer' && roles.includes('CUSTOMER')) ||
-    (section === 'merchant' && roles.includes('MERCHANT')) ||
     (section === 'admin' && roles.includes('ADMIN'))
   ) {
     return NextResponse.next()
   }
+
+  if (section === 'merchant' && token) return merchantPortalProxy(request, event)
 
   return NextResponse.redirect(new URL('/', request.url))
 }
