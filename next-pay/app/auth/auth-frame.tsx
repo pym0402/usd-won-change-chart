@@ -49,3 +49,21 @@ export function AuthSuccess({ title, onConfirm }: { title: string; onConfirm: ()
     </dialog>
   )
 }
+
+export function RecoveryResult({ title, label, value, description }: {
+  title: string
+  label: string
+  value: string
+  description?: string
+}) {
+  return (
+    <div className={styles.success} role="status">
+      <h2 className={styles.resultHeading}><Check size={18} aria-hidden="true" />{title}</h2>
+      <dl className={styles.resultValue}>
+        <dt>{label}</dt>
+        <dd>{value}</dd>
+      </dl>
+      {description && <p className={styles.resultNote}>{description}</p>}
+    </div>
+  )
+}
