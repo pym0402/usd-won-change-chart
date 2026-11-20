@@ -5,6 +5,7 @@ import styles from './home.module.css'
 
 const portals = [
   {
+    role: 'CUSTOMER',
     href: '/customer',
     title: '고객 페이지',
     description: '포인트를 충전하고, 간편결제와 송금 내역을 확인하세요.',
@@ -13,6 +14,7 @@ const portals = [
     accent: styles.blue,
   },
   {
+    role: 'MERCHANT',
     href: '/merchant',
     title: '가맹점 페이지',
     description: '결제·정산 내역을 확인하고 QR 결제와 SDK를 연동하세요.',
@@ -21,6 +23,7 @@ const portals = [
     accent: styles.mint,
   },
   {
+    role: 'ADMIN',
     href: '/admin',
     title: '관리자 페이지',
     description: '거래액과 수수료 수익을 보고 가맹점과 이상 거래를 관리하세요.',
@@ -28,7 +31,7 @@ const portals = [
     icon: ShieldCheck,
     accent: styles.violet,
   },
-]
+] as const
 
 function PaymentPreview() {
   return (
@@ -61,6 +64,8 @@ function PaymentPreview() {
 
 export default async function Home() {
   const session = await auth()
+  const roles = session?.user?.roles ?? []
+  const visiblePortals = session ? portals.filter(({ role }) => roles.includes(role)) : portals
 
   return (
     <main className={styles.home}>
@@ -86,25 +91,29 @@ export default async function Home() {
           <PaymentPreview />
         </section>
 
-        <section className={styles.portals} aria-labelledby="portal-title">
+        <section className={styles.portals} aria-labelledby="portal-title" data-count={visiblePortals.length}>
           <h2 id="portal-title" className={styles.sectionTitle}>서비스 바로가기</h2>
-          <ul className={styles.portalGrid}>
-            {portals.map(({ href, title, description, action, icon: Icon, accent }) => (
-              <li key={href} className={accent}>
-                <Link href={href} className={styles.portalCard}>
-                  <span className={styles.portalIcon}>
-                    <Icon size={24} strokeWidth={2} aria-hidden="true" />
-                  </span>
-                  <h3 className={styles.portalTitle}>{title}</h3>
-                  <p className={styles.portalDescription}>{description}</p>
-                  <span className={styles.portalAction}>
-                    {action}
-                    <ChevronRight size={17} aria-hidden="true" />
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {visiblePortals.length ? (
+            <ul className={styles.portalGrid}>
+              {visiblePortals.map(({ role, href, title, description, action, icon: Icon, accent }) => (
+                <li key={href} className={accent}>
+                  <Link href={href} className={styles.portalCard}>
+                    <span className={styles.portalIcon}>
+                      <Icon size={24} strokeWidth={2} aria-hidden="true" />
+                    </span>
+                    <h3 className={styles.portalTitle}>{session && role === 'CUSTOMER' ? '고객 포털' : title}</h3>
+                    <p className={styles.portalDescription}>{session && role === 'CUSTOMER' ? '내 지갑에서 포인트를 확인하고 간편결제를 이용하세요.' : description}</p>
+                    <span className={styles.portalAction}>
+                      {action}
+                      <ChevronRight size={17} aria-hidden="true" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.portalEmpty}>이 계정에서 이용할 수 있는 포털이 없습니다.</p>
+          )}
         </section>
       </div>
     </main>
