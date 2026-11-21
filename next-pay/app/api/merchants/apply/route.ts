@@ -1,19 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { authorize } from '@/lib/authorize'
 import { merchantService } from '@/services/merchantService'
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
+    const user = await authorize('MERCHANT')
+    if (user instanceof NextResponse) return user
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      )
-    }
-
-    const userId = (session.user as any).id
     const body = await request.json()
     const { businessName, businessLicense, description, documents } = body
 
@@ -25,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const result = await merchantService.applyForMerchant(
-      userId,
+      user.id,
       businessName,
       businessLicense,
       description,

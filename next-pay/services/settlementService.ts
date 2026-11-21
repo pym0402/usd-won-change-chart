@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { SettlementStatus, AccountType, ReferenceType } from '@prisma/client'
+import { SettlementStatus, AccountType, ReferenceType, type MerchantSettlement, type Prisma } from '@prisma/client'
 
 export const settlementService = {
   /**
@@ -19,88 +19,82 @@ export const settlementService = {
   /**
    * 정산 생성 (결제 완료 시 자동 호출)
    */
-  async createSettlement(paymentId: string) {
-    return await prisma.$transaction(async (tx) => {
-      // Payment 조회
-      const payment = await tx.payment.findUnique({
-        where: { id: paymentId },
-        include: {
-          merchant: true
-        }
-      })
+  async createSettlement(paymentId: string, tx?: Prisma.TransactionClient): Promise<MerchantSettlement> {
+    if (!tx) return prisma.$transaction((transaction) => this.createSettlement(paymentId, transaction))
 
-      if (!payment) {
-        throw new Error('결제 정보를 찾을 수 없습니다.')
+    // Payment 조회
+    const payment = await tx.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        merchant: true
       }
-
-      if (payment.status !== 'COMPLETED') {
-        throw new Error('완료된 결제만 정산할 수 있습니다.')
-      }
-
-      // 기존 정산 확인
-      const existingSettlement = await tx.merchantSettlement.findUnique({
-        where: { paymentId }
-      })
-
-      if (existingSettlement) {
-        return existingSettlement
-      }
-
-      // 수수료 계산
-      const commission = this.calculateCommission(payment.amount, payment.merchant.commissionRate)
-      const netAmount = this.calculateNetAmount(payment.amount, commission)
-
-      // 정산 생성
-      const settlement = await tx.merchantSettlement.create({
-        data: {
-          merchantId: payment.merchantId,
-          paymentId,
-          grossAmount: payment.amount,
-          commission,
-          netAmount,
-          status: SettlementStatus.PENDING
-        }
-      })
-
-      // 복식부기 원장 기록
-      // 차변: REVENUE (전체 금액만큼 수익 계정 감소)
-      await tx.ledgerEntry.create({
-        data: {
-          referenceId: settlement.id,
-          referenceType: ReferenceType.SETTLEMENT,
-          accountType: AccountType.REVENUE,
-          debit: payment.amount,
-          credit: 0,
-          description: `정산 - ${payment.amount}원`
-        }
-      })
-
-      // 대변: COMMISSION (플랫폼 수수료)
-      await tx.ledgerEntry.create({
-        data: {
-          referenceId: settlement.id,
-          referenceType: ReferenceType.SETTLEMENT,
-          accountType: AccountType.COMMISSION,
-          debit: 0,
-          credit: commission,
-          description: `수수료 - ${commission}원`
-        }
-      })
-
-      // 대변: MERCHANT (가맹점 정산 금액)
-      await tx.ledgerEntry.create({
-        data: {
-          referenceId: settlement.id,
-          referenceType: ReferenceType.SETTLEMENT,
-          accountType: AccountType.MERCHANT,
-          debit: 0,
-          credit: netAmount,
-          description: `가맹점 정산 - ${netAmount}원`
-        }
-      })
-
-      return settlement
     })
+
+    if (!payment) {
+      throw new Error('결제 정보를 찾을 수 없습니다.')
+    }
+
+    if (payment.status !== 'COMPLETED') {
+      throw new Error('완료된 결제만 정산할 수 있습니다.')
+    }
+
+    // 수수료 계산
+    const commission = this.calculateCommission(payment.amount, payment.merchant.commissionRate)
+    const netAmount = this.calculateNetAmount(payment.amount, commission)
+
+    // 정산 생성
+    const [settlement] = await tx.merchantSettlement.createManyAndReturn({
+      skipDuplicates: true,
+      data: {
+        merchantId: payment.merchantId,
+        paymentId,
+        grossAmount: payment.amount,
+        commission,
+        netAmount,
+        status: SettlementStatus.PENDING
+      }
+    })
+
+    if (!settlement) return tx.merchantSettlement.findUniqueOrThrow({ where: { paymentId } })
+
+    // 복식부기 원장 기록
+    // 차변: REVENUE (전체 금액만큼 수익 계정 감소)
+    await tx.ledgerEntry.create({
+      data: {
+        referenceId: settlement.id,
+        referenceType: ReferenceType.SETTLEMENT,
+        accountType: AccountType.REVENUE,
+        debit: payment.amount,
+        credit: 0,
+        description: `정산 - ${payment.amount}원`
+      }
+    })
+
+    // 대변: COMMISSION (플랫폼 수수료)
+    await tx.ledgerEntry.create({
+      data: {
+        referenceId: settlement.id,
+        referenceType: ReferenceType.SETTLEMENT,
+        accountType: AccountType.COMMISSION,
+        debit: 0,
+        credit: commission,
+        description: `수수료 - ${commission}원`
+      }
+    })
+
+    // 대변: MERCHANT (가맹점 정산 금액)
+    await tx.ledgerEntry.create({
+      data: {
+        referenceId: settlement.id,
+        referenceType: ReferenceType.SETTLEMENT,
+        accountType: AccountType.MERCHANT,
+        debit: 0,
+        credit: netAmount,
+        description: `가맹점 정산 - ${netAmount}원`
+      }
+    })
+
+    return settlement
   },
 
   /**

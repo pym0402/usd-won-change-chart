@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { TransactionType, AccountType, ReferenceType } from '@prisma/client'
+import { TransactionType, AccountType, ReferenceType, type Prisma } from '@prisma/client'
 
 interface ChargePointsParams {
   userId: string
@@ -145,14 +145,14 @@ export const walletService = {
    * 포인트 사용 (복식부기 원장 포함)
    * 트랜잭션: 차변(POINTS) + 대변(REVENUE)
    */
-  async usePoints(params: UsePointsParams) {
+  async usePoints(params: UsePointsParams, transaction?: Prisma.TransactionClient) {
     const { userId, amount, description, referenceId } = params
 
     if (amount <= 0) {
       throw new Error('사용 금액은 0보다 커야 합니다.')
     }
 
-    return await prisma.$transaction(async (tx) => {
+    const usePoints = async (tx: Prisma.TransactionClient) => {
       // 1. 지갑 조회
       const wallet = await tx.wallet.findUnique({
         where: { userId }
@@ -162,18 +162,15 @@ export const walletService = {
         throw new Error('지갑을 찾을 수 없습니다.')
       }
 
-      // 2. 잔액 확인
-      if (wallet.balance < amount) {
-        throw new Error('포인트 잔액이 부족합니다.')
-      }
-
-      // 3. 지갑 잔액 업데이트
-      const updatedWallet = await tx.wallet.update({
-        where: { id: wallet.id },
+      // 잔액 확인과 차감을 한 번에 처리합니다.
+      const debit = await tx.wallet.updateMany({
+        where: { id: wallet.id, balance: { gte: amount } },
         data: {
-          balance: wallet.balance - amount
+          balance: { decrement: amount }
         }
       })
+      if (!debit.count) throw new Error('포인트 잔액이 부족합니다.')
+      const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } })
 
       // 4. 포인트 거래 기록 생성
       const pointTransaction = await tx.pointTransaction.create({
@@ -216,19 +213,21 @@ export const walletService = {
         wallet: updatedWallet,
         transaction: pointTransaction
       }
-    })
+    }
+
+    return transaction ? usePoints(transaction) : prisma.$transaction(usePoints)
   },
 
   /**
    * 포인트 적립 (결제 완료 시)
    * 트랜잭션: 차변(REVENUE) + 대변(POINTS)
    */
-  async earnPoints(userId: string, amount: number, description?: string, referenceId?: string) {
+  async earnPoints(userId: string, amount: number, description?: string, referenceId?: string, transaction?: Prisma.TransactionClient) {
     if (amount <= 0) {
       throw new Error('적립 금액은 0보다 커야 합니다.')
     }
 
-    return await prisma.$transaction(async (tx) => {
+    const earnPoints = async (tx: Prisma.TransactionClient) => {
       // 1. 지갑 조회 또는 생성
       let wallet = await tx.wallet.findUnique({
         where: { userId }
@@ -248,7 +247,7 @@ export const walletService = {
       const updatedWallet = await tx.wallet.update({
         where: { id: wallet.id },
         data: {
-          balance: wallet.balance + amount
+          balance: { increment: amount }
         }
       })
 
@@ -293,7 +292,9 @@ export const walletService = {
         wallet: updatedWallet,
         transaction: pointTransaction
       }
-    })
+    }
+
+    return transaction ? earnPoints(transaction) : prisma.$transaction(earnPoints)
   },
 
   /**

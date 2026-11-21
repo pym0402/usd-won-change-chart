@@ -11,7 +11,6 @@ const navigation = [
   { href: '/customer/payments', label: '간편결제' },
   { href: '/customer/payment-methods', label: '결제 수단' },
   { href: '/customer/transfer', label: '송금/선물' },
-  { href: '/merchant/apply', label: '입점 신청' },
 ]
 
 export default function CustomerLayout({

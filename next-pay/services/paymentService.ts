@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { PaymentStatus, AccountType, ReferenceType } from '@prisma/client'
 import Stripe from 'stripe'
 import crypto from 'crypto'
+import { settlementService } from './settlementService'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -152,6 +153,15 @@ export const paymentService = {
         ? requireStripe()
         : null
 
+      const pointsOnly = payment.cardAmount === 0
+      if (pointsOnly) {
+        const updated = await tx.payment.updateMany({
+          where: { id: paymentId, status: PaymentStatus.PENDING },
+          data: { status: PaymentStatus.COMPLETED }
+        })
+        if (!updated.count) throw new Error('이미 처리된 결제입니다.')
+      }
+
       // 포인트 사용 처리
       if (payment.pointAmount > 0) {
         const { walletService } = await import('./walletService')
@@ -160,7 +170,7 @@ export const paymentService = {
           amount: payment.pointAmount,
           description: '결제 포인트 사용',
           referenceId: paymentId
-        })
+        }, pointsOnly ? tx : undefined)
       }
 
       // 카드 결제 처리
@@ -172,15 +182,7 @@ export const paymentService = {
           })
         }
         // Stripe 웹훅을 통해 상태 업데이트됨
-      } else if (payment.cardAmount === 0) {
-        // 포인트만 사용한 경우 즉시 완료 처리
-        await tx.payment.update({
-          where: { id: paymentId },
-          data: {
-            status: PaymentStatus.COMPLETED
-          }
-        })
-
+      } else if (pointsOnly) {
         // 원장 기록 (카드 결제 없는 경우)
         await this.createLedgerEntriesForPayment(tx, paymentId, payment.amount, payment.cardAmount)
 
@@ -192,9 +194,11 @@ export const paymentService = {
             payment.customerId,
             earnAmount,
             '결제 완료 포인트 적립',
-            paymentId
+            paymentId,
+            tx
           )
         }
+        await settlementService.createSettlement(paymentId, tx)
         return { ...payment, status: PaymentStatus.COMPLETED }
       }
 
@@ -401,7 +405,7 @@ export const paymentService = {
    * 결제 성공 처리
    */
   async handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-    const { merchantId, customerId, idempotencyKey } = paymentIntent.metadata
+    const { merchantId, customerId } = paymentIntent.metadata
 
     if (!merchantId || !customerId) {
       console.error('메타데이터에 merchantId 또는 customerId가 없습니다.')
@@ -422,12 +426,26 @@ export const paymentService = {
       }
 
       // 결제 상태 업데이트
-      await tx.payment.update({
-        where: { id: payment.id },
+      const updated = await tx.payment.updateMany({
+        where: {
+          id: payment.id,
+          status: { in: [PaymentStatus.PENDING, PaymentStatus.PROCESSING, PaymentStatus.FAILED] }
+        },
         data: {
           status: PaymentStatus.COMPLETED
         }
       })
+
+      if (!updated.count) {
+        const current = await tx.payment.findUniqueOrThrow({
+          where: { id: payment.id },
+          select: { status: true }
+        })
+        if (current.status === PaymentStatus.COMPLETED) {
+          await settlementService.createSettlement(payment.id, tx)
+        }
+        return
+      }
 
       // 원장 기록
       await this.createLedgerEntriesForPayment(tx, payment.id, payment.amount, payment.cardAmount)
@@ -440,13 +458,13 @@ export const paymentService = {
           customerId,
           earnAmount,
           '결제 완료 포인트 적립',
-          payment.id
+          payment.id,
+          tx
         )
       }
 
       // 정산 생성
-      const { settlementService } = await import('./settlementService')
-      await settlementService.createSettlement(payment.id)
+      await settlementService.createSettlement(payment.id, tx)
     })
   },
 

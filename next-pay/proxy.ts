@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest, event: NextFetchEvent) {
     return NextResponse.redirect(new URL(destination, request.url))
   }
 
-  if (path === '/' || path === '/merchant/apply' || path.startsWith('/api/')) {
+  if (path === '/' || path.startsWith('/api/')) {
     return NextResponse.next()
   }
   const roles = normalizeRoles(token?.roles)

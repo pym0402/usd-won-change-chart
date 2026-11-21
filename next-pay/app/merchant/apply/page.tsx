@@ -17,6 +17,7 @@ const statusDetails = {
 export default async function MerchantApplyPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/auth/signin')
+  if (!session.user.roles.includes('MERCHANT')) redirect('/')
 
   const merchant = await prisma.merchant.findUnique({
     where: { userId: session.user.id },
@@ -48,7 +49,7 @@ export default async function MerchantApplyPage() {
                 <button className={styles.button} type="submit">심사 상태 새로고침</button>
               </form>
             )}
-            {merchant.status === 'APPROVED' && session.user.roles.includes('MERCHANT') && (
+            {merchant.status === 'APPROVED' && (
               <div>
                 <Link href="/merchant" className={styles.primaryButton}>가맹점 대시보드 열기</Link>
               </div>
