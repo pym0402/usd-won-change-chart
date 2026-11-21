@@ -14,7 +14,7 @@ function isLocalDemo(request: Request) {
     const host = request.headers.get('host')
     const requestOrigin = request.headers.get('origin')
     return ['localhost', '127.0.0.1', '[::1]'].includes(db.hostname) &&
-      /^nextpay_demo_[a-f0-9]{32}$/.test(db.searchParams.get('schema') ?? '') &&
+      db.searchParams.get('schema') === 'nextpay_demo_recovery' &&
       process.env.AUTH_URL === origin &&
       host === '127.0.0.1:3110' &&
       (!requestOrigin || requestOrigin === origin)
